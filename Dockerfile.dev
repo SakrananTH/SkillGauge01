@@ -1,0 +1,20 @@
+# Development Dockerfile
+FROM node:18-alpine
+
+# ตั้งค่า working directory
+WORKDIR /app
+
+# คัดลอก package.json และ package-lock.json
+COPY package*.json ./
+
+# ติดตั้ง dependencies
+RUN npm install
+
+# คัดลอกโค้ดทั้งหมด
+COPY . .
+
+# เปิด port 3000
+EXPOSE 3000
+
+# รันคำสั่งเริ่มต้น development server
+CMD ["npm", "start"]
