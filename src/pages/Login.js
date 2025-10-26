@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [role, setRole] = useState('foreman');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const onLogin = () => {
+    // No real auth yet: just navigate with in-memory payload to test dashboard wiring
+    const user = { username: username || '+66861234567', role };
+    navigate('/dashboard', { state: { user, source: 'login' } });
+  };
 
   return (
     <div className="login-screen">
@@ -14,11 +23,11 @@ const Login = () => {
           <div className="login-card">
             <div className="login-row">
               <label className="login-label">Username</label>
-              <input className="login-input" placeholder="เบอร์โทรศัพท์" />
+              <input className="login-input" placeholder="เบอร์โทรศัพท์" value={username} onChange={e=>setUsername(e.target.value)} />
             </div>
             <div className="login-row">
               <label className="login-label">Password</label>
-              <input className="login-input" type="password" placeholder="••••••••" />
+              <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} />
             </div>
             <div className="login-links">
               <Link to="#">Forgot password</Link>
@@ -46,7 +55,7 @@ const Login = () => {
                 </button>
               </div>
             </div>
-            <button className="login-submit">Login</button>
+            <button className="login-submit" type="button" onClick={onLogin}>Login</button>
             <div className="login-footer-link">
               Don't have an account? <Link to="/signup">Sign Up</Link>
             </div>
