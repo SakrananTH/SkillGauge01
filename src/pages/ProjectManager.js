@@ -107,10 +107,10 @@ const ProjectManager = () => {
         </div>
 
         <div className="pm-stats">
-          <div className="stat"><div className="value">12,721</div><div className="label">Number of projects</div></div>
-          <div className="stat"><div className="value">721</div><div className="label">Active tasks</div></div>
-          <div className="stat"><div className="value">$2,50,254</div><div className="label">Revenue</div></div>
-          <div className="stat"><div className="value">12,185 hr</div><div className="label">Working Hours</div></div>
+          <div className="stat"><div className="value">0</div><div className="label">Number of projects</div></div>
+          <div className="stat"><div className="value">0</div><div className="label">Active tasks</div></div>
+          <div className="stat"><div className="value">$0</div><div className="label">Revenue</div></div>
+          <div className="stat"><div className="value">0hr</div><div className="label">Working Hours</div></div>
         </div>
       </main>
     </div>

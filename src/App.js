@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import ProjectManager from './pages/ProjectManager';
+import Project_Tasks from './pages/Project_Tasks';
 import './App.css';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
             <Route path="signup" element={<Signup />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="pm" element={<ProjectManager />} />
+            <Route path="project-tasks" element={<Project_Tasks />} />
           </Route>
         </Routes>
       </div>
