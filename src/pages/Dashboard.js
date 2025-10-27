@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 import { mockUser, mockProjects, mockSites, mockTasks } from '../mock/mockData';
 
 const Dashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const navUser = location.state?.user;
   const user = navUser || mockUser;
 
@@ -48,12 +49,17 @@ const Dashboard = () => {
 
   const role = (user?.role || 'Worker').toLowerCase().replace(/[_-]+/g, ' ');
 
+  const goTasks = () => {
+    const path = role === 'project manager' ? '/project-tasks' : '/dashboard';
+    navigate(path, { state: { user } });
+  };
+
   return (
     <div className="dash-layout">
       {/* Sidebar */}
       <aside className="dash-sidebar">
         <nav className="menu">
-          <button type="button" className="menu-item active">Tasks</button>
+          <button type="button" className="menu-item active" onClick={goTasks}>Tasks</button>
           <button type="button" className="menu-item">Skill Assessment Test</button>
           <button type="button" className="menu-item">Submit work</button>
           <button type="button" className="menu-item">Settings</button>

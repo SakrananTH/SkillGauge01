@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 import { mockUser, mockProjects, mockTasks } from '../mock/mockData';
 
 const ProjectManager = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const navUser = location.state?.user;
   // default to a PM user if none is passed
   const user = navUser || { ...mockUser, role: 'Project Manager' };
@@ -23,8 +24,8 @@ const ProjectManager = () => {
     <div className="dash-layout">
       <aside className="dash-sidebar">
         <nav className="menu">
-          <button type="button" className="menu-item active">Dashboard</button>
-          <button type="button" className="menu-item">Tasks</button>
+          <button type="button" className="menu-item active" onClick={() => navigate('/pm', { state: { user } })}>Dashboard</button>
+          <button type="button" className="menu-item" onClick={() => navigate('/project-tasks', { state: { user } })}>Tasks</button>
           <button type="button" className="menu-item">Projects</button>
           <button type="button" className="menu-item">History</button>
           <button type="button" className="menu-item">Settings</button>

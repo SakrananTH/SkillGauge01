@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 import './Project_Tasks.css';
 import { mockUser } from '../mock/mockData';
 
 const Project_Tasks = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const navUser = location.state?.user;
   const user = navUser || { ...mockUser, role: 'Project Manager' };
 
@@ -33,8 +34,8 @@ const Project_Tasks = () => {
     <div className="dash-layout">
       <aside className="dash-sidebar">
         <nav className="menu">
-          <button type="button" className="menu-item">Dashboard</button>
-          <button type="button" className="menu-item active">Tasks</button>
+          <button type="button" className="menu-item" onClick={() => navigate('/pm', { state: { user } })}>Dashboard</button>
+          <button type="button" className="menu-item active" onClick={() => navigate('/project-tasks', { state: { user } })}>Tasks</button>
           <button type="button" className="menu-item">Projects</button>
           <button type="button" className="menu-item">History</button>
           <button type="button" className="menu-item">Settings</button>
