@@ -46,7 +46,7 @@ const Dashboard = () => {
 
   const projectOptions = [{ id:'all', name:'Project' }, ...mockProjects];
 
-  const role = (user?.role || 'Worker').toLowerCase();
+  const role = (user?.role || 'Worker').toLowerCase().replace(/[_-]+/g, ' ');
 
   return (
     <div className="dash-layout">

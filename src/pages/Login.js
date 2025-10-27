@@ -11,7 +11,8 @@ const Login = () => {
   const onLogin = () => {
     // No real auth yet: just navigate with in-memory payload to test dashboard wiring
     const user = { username: username || '+66861234567', role };
-    navigate('/dashboard', { state: { user, source: 'login' } });
+    const dest = role === 'project_manager' ? '/pm' : '/dashboard';
+    navigate(dest, { state: { user, source: 'login' } });
   };
 
   return (
