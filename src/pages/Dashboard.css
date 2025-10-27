@@ -71,6 +71,36 @@ select.pill option { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
 
 .back-home { margin-top: 1rem; color: #5f6368; }
 
+/* Role-specific layouts */
+.panel { background: #fff; border: 1px solid #e2e6ec; border-radius: 12px; padding: 1rem; }
+.panel.dark { background: #1f2a3c; border-color: #29364d; color: #e6edf7; }
+.panel .panel-title { font-weight: 800; margin: 0 0 0.75rem; font-size: 1rem; }
+
+.pm-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem; margin-top: 1rem; }
+.pm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.pm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1rem; }
+.stat { background: #f6f8fb; border: 1px solid #e2e6ec; border-radius: 10px; padding: 0.9rem; text-align: center; }
+.stat .label { color: #5f6368; font-size: 0.85rem; }
+.stat .value { font-weight: 800; font-size: 1.1rem; }
+
+.donut { width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(#7cc576 0 40%, #6b8eea 40% 75%, #f7c65f 75%); position: relative; margin: 0 auto; }
+.donut::after { content: ""; position: absolute; inset: 18%; background: #1f2a3c; border-radius: 50%; }
+.donut-legend { display: grid; gap: 0.5rem; font-size: 0.9rem; }
+.legend-item { display: flex; align-items: center; gap: 0.5rem; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-green { background: #7cc576; }
+.dot-blue { background: #6b8eea; }
+.dot-yellow { background: #f7c65f; }
+
+.events { display: grid; gap: 0.75rem; }
+.event { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 0.75rem; padding: 0.6rem; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid #2a3a59; }
+.event .date { text-align: center; }
+.event .date .day { font-size: 1.1rem; font-weight: 800; }
+.event .date .dow { color: #9fb3d1; font-size: 0.8rem; }
+.event .title { font-weight: 700; }
+.event .sub { color: #9fb3d1; font-size: 0.85rem; }
+.event .time { color: #cfd8e3; font-size: 0.85rem; }
+
 @media (max-width: 1000px) {
   .dash-layout { grid-template-columns: 200px 1fr; }
   .thead, .tr { grid-template-columns: 1fr 0.9fr 0.8fr 0.9fr 0.9fr; }
