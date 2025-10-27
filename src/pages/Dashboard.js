@@ -66,8 +66,8 @@ const Dashboard = () => {
           <div className="top-actions">
             <span className="icon"></span>
             <span className="profile">
-              <span className="avatar" />
-              {user?.phone && <span className="email" style={{marginLeft: '0.75rem'}}>{user.phone}</span>}
+              <span className="avatar"/>
+              {user?.phone && <span className="phone" style={{marginLeft: '2rem'}}>{user.phone}</span>}
             </span>
           </div>
         </div>
@@ -75,7 +75,7 @@ const Dashboard = () => {
         {/* Header */}
         <div className="dash-header">
           <h1>งานที่ได้รับมอบหมาย</h1>
-          <p className="sub">View and manage your assigned tasks.</p>
+          <p className="sub"></p>
         </div>
 
         {/* Search + Filters */}
