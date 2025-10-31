@@ -65,11 +65,11 @@ const Project_Tasks = () => {
             <section className="task-form">
               <h2 className="section-title">รายละเอียดงาน</h2>
               <form onSubmit={onCreate}>
-                <div className="field"><input className="input" placeholder="ชื่องาน" value={form.title} onChange={update('title')} /></div>
-                <div className="field"><input className="input" placeholder="ทำการเทพื้นที่มีความยาว 5 เมตร และ ทำทางเดิน" value={form.description} onChange={update('description')} /></div>
+                <div className="field"><input className="input" placeholder="ชื่อโครงงาน" value={form.title} onChange={update('title')} /></div>
+                <div className="field"><input className="input" placeholder="เช่น ทำการเทพื้นที่มีความยาว 5 เมตร และ ทำทางเดิน" value={form.description} onChange={update('description')} /></div>
                 <div className="field"><input className="input" placeholder="วันที่เริ่มต้น 20/01/20xx" value={form.startDate} onChange={update('startDate')} /></div>
                 <div className="field"><input className="input" placeholder="วันสิ้นสุด 20/02/20xx" value={form.endDate} onChange={update('endDate')} /></div>
-                <div className="field"><input className="input" placeholder="บ้านนกกาภู" value={form.location} onChange={update('location')} /></div>
+                <div className="field"><input className="input" placeholder="ชื่องาน เช่น หมู่บ้าน/อาคาร/พื้นที่" value={form.location} onChange={update('location')} /></div>
                 <div className="field">
                   <select className="select" value={form.wage} onChange={update('wage')}>
                     <option value="">เทพืน</option>
@@ -111,15 +111,15 @@ const Project_Tasks = () => {
               <div className="worker-card">
                 <div className="avatar small" />
                 <div>
-                  <div className="w-name">นายสมยศ นะนะ</div>
-                  <div className="w-sub">ช่างโครงสร้าง ระดับ 2</div>
+                  <div className="w-name"> ไม่พบ </div>
+                  <div className="w-sub"> ไม่พบ </div>
                 </div>
               </div>
               <div className="worker-card">
                 <div className="avatar small" />
                 <div>
-                  <div className="w-name">นายมณี นะจ๊ะ</div>
-                  <div className="w-sub">ช่างโครงสร้าง ระดับ 2</div>
+                  <div className="w-name"> ไม่พบ </div>
+                  <div className="w-sub"> ไม่พบ </div>
                 </div>
               </div>
             </aside>

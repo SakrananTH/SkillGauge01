@@ -4,7 +4,7 @@
 .task-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1.25rem; }
 
 .task-form { background: #fff; border: 1px solid #e2e6ec; border-radius: 12px; padding: 1rem; }
-.section-title { margin: 0 0 0.75rem; font-weight: 800; font-size: 1rem; }
+.section-title { margin: 0 0 0.75rem; font-weight: 800; font-size: 1.25rem; }
 
 .field { margin-bottom: 0.75rem; }
 .input, .select { width: 100%; background: #f8fbff; border: 1px solid #e2e6ec; border-radius: 10px; padding: 0.75rem 0.9rem; font-size: 0.95rem; color: #2b3a52; font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
