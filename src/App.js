@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import ProjectManager from './pages/ProjectManager';
 import ProjectTasks from './pages/Project_Tasks';
 import SkillAssessmentTest from './pages/Skill Assessment Test';
+import SkillAssessmentQuiz from './pages/Skill Assessment Quiz';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="pm" element={<ProjectManager />} />
             <Route path="project-tasks" element={<ProjectTasks />} />
             <Route path="skill-assessment" element={<SkillAssessmentTest />} />
+            <Route path="skill-assessment/quiz" element={<SkillAssessmentQuiz />} />
           </Route>
         </Routes>
       </div>

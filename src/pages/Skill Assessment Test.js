@@ -11,7 +11,7 @@ const SkillAssessmentTest = () => {
   const user = navUser || { ...mockUser, role: 'worker' };
 
   const startTest = () => {
-    alert('เริ่มทำแบบทดสอบ (ตัวอย่าง)');
+    navigate('/skill-assessment/quiz', { state: { user } });
   };
 
   return (
