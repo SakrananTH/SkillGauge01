@@ -68,77 +68,18 @@ const Home = () => {
   };
   const services = [
     {
-      title: "บริการออกแบบเว็บไซต์",
-      description: "ออกแบบและพัฒนาเว็บไซต์ที่สวยงาม ทันสมัย และใช้งานง่าย ตอบสนองทุกอุปกรณ์"
+      title: "",
+      description: ""
     },
     {
-      title: "ระบบจัดการเนื้อหา",
-      description: "พัฒนาระบบจัดการเนื้อหาที่ใช้งานง่าย สามารถอัพเดทข้อมูลได้ด้วยตนเอง"
+      title: "",
+      description: ""
     },
     {
-      title: "SEO และการตลาดออนไลน์",
-      description: "ปรับแต่ง SEO และให้คำปรึกษาด้านการตลาดออนไลน์เพื่อเพิ่มยอดขาย"
+      title: "",
+      description: ""
     }
   ];
-
-  return (
-    <div className="home">
-      <section className="hero section-hero">
-        <div className="hero-carousel" aria-roledescription="carousel">
-          <Carousel />
-          <div className="container hero-overlay">
-            <div className="grid grid-cols-2 gap-8 items-center">
-              <div>
-                <h1 className="hero-title">ระบบประเมินช่างก่อสร้าง</h1>
-                <p className="hero-subtitle">
-                  บริการออกแบบและพัฒนาเว็บไซต์มืออาชีพ ด้วยเทคโนโลยีล่าสุด 
-                  ทำให้ธุรกิจของคุณโดดเด่นในโลกออนไลน์
-                </p>
-                <div className="flex gap-4">
-                  <Link to="/contact" className="hero-button primary">
-                    ติดต่อเรา
-                  </Link>
-                  <Link to="/services" className="hero-button secondary">
-                    ดูบริการ
-                  </Link>
-                </div>
-              </div>
-              <div className="hero-image" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="services">
-        <div className="container">
-          <h2 className="section-title"></h2>
-          <div className="services-grid">
-            {services.map((service, index) => (
-              <Card
-                key={index}
-                title={service.title}
-                description={service.description}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="about-preview">
-        <div className="container">
-          <div className="about-content">
-            <h2>....</h2>
-            <p>
-             ยังไม่มีเนื้อหา
-            
-          
-            </p>
-            <button className="learn-more-btn">เรียนรู้เพิ่มเติม</button>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
 };
 
 export default Home;
