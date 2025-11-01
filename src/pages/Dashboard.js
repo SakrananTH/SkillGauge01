@@ -60,7 +60,14 @@ const Dashboard = () => {
       <aside className="dash-sidebar">
         <nav className="menu">
           <button type="button" className="menu-item active" onClick={goTasks}>Tasks</button>
-          <button type="button" className="menu-item">Skill Assessment Test</button>
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => role === 'worker' && navigate('/skill-assessment', { state: { user } })}
+            disabled={role !== 'worker'}
+          >
+            Skill Assessment Test
+          </button>
           <button type="button" className="menu-item">Submit work</button>
           <button type="button" className="menu-item">Settings</button>
         </nav>
