@@ -9,7 +9,14 @@ const Login = () => {
   const [password, setPassword] = useState('');
 
   const onLogin = () => {
-    // No real auth yet: just navigate with in-memory payload to test dashboard wiring
+    // Simple demo logic: check for Admin credentials first
+    if (username === '0863125891' && password === '0863503381') {
+      const user = { username, role: 'admin' };
+      navigate('/admin', { state: { user, source: 'login' } });
+      return;
+    }
+
+    // Otherwise fallback to selected role navigation (no real auth yet)
     const user = { username: username || '+66861234567', role };
     const dest = role === 'project_manager' ? '/pm' : '/dashboard';
     navigate(dest, { state: { user, source: 'login' } });

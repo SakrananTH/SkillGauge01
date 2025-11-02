@@ -54,8 +54,15 @@ const SkillAssessmentQuiz = () => {
   const total = questions.length;
   const percent = Math.round(((idx) / total) * 100);
 
-  const choose = (choiceIndex) => {
-    setAnswers((a) => ({ ...a, [q.id]: choiceIndex }));
+  const toggleChoice = (choiceIndex) => {
+    setAnswers((a) => {
+      const current = a[q.id];
+      if (current === choiceIndex) {
+        const { [q.id]: _omit, ...rest } = a;
+        return rest; // deselect
+      }
+      return { ...a, [q.id]: choiceIndex };
+    });
   };
 
   const prev = () => setIdx((i) => Math.max(0, i - 1));
@@ -102,12 +109,22 @@ const SkillAssessmentQuiz = () => {
 
           <div className="choices">
             {q.choices.map((c, i) => (
-              <label key={i} className={`choice ${answers[q.id] === i ? 'selected' : ''}`}>
+              <label
+                key={i}
+                className={`choice ${answers[q.id] === i ? 'selected' : ''}`}
+                role="radio"
+                aria-checked={answers[q.id] === i}
+                tabIndex={0}
+                onClick={() => toggleChoice(i)}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleChoice(i); }
+                }}
+              >
                 <input
                   type="radio"
                   name={q.id}
                   checked={answers[q.id] === i}
-                  onChange={() => choose(i)}
+                  readOnly
                 />
                 <span className="bullet" />
                 <span className="text">{c}</span>
