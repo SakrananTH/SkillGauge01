@@ -7,6 +7,7 @@ import Services from './pages/Services';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import ProjectManager from './pages/ProjectManager';
@@ -29,7 +30,7 @@ function App() {
             <Route path="login" element={<Login />} />
             <Route path="signup" element={<Signup />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="admin" element={<AdminDashboard />} />
+            <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="pm" element={<ProjectManager />} />
             <Route path="project-tasks" element={<ProjectTasks />} />
             <Route path="skill-assessment" element={<SkillAssessmentTest />} />

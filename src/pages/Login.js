@@ -4,20 +4,28 @@ import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState('foreman');
+  // Start with no role selected; user can toggle selection on/off
+  const [role, setRole] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  const toggleRole = (target) => {
+    setRole((prev) => (prev === target ? '' : target));
+  };
 
   const onLogin = () => {
     // Simple demo logic: check for Admin credentials first
     if (username === '0863125891' && password === '0863503381') {
       const user = { username, role: 'admin' };
+      try { sessionStorage.setItem('role', 'admin'); } catch {}
       navigate('/admin', { state: { user, source: 'login' } });
       return;
     }
 
     // Otherwise fallback to selected role navigation (no real auth yet)
-    const user = { username: username || '+66861234567', role };
+    const currentRole = role || 'foreman';
+    const user = { username: username || '+66861234567', role: currentRole };
+    try { sessionStorage.setItem('role', currentRole); } catch {}
     const dest = role === 'project_manager' ? '/pm' : '/dashboard';
     navigate(dest, { state: { user, source: 'login' } });
   };
@@ -43,21 +51,24 @@ const Login = () => {
                 <button
                   type="button"
                   className={`role-btn ${role === 'project_manager' ? 'active' : ''}`}
-                  onClick={() => setRole('project_manager')}
+                  aria-pressed={role === 'project_manager'}
+                  onClick={() => toggleRole('project_manager')}
                 >
                   Project Manager
                 </button>
                 <button
                   type="button"
                   className={`role-btn ${role === 'foreman' ? 'active' : ''}`}
-                  onClick={() => setRole('foreman')}
+                  aria-pressed={role === 'foreman'}
+                  onClick={() => toggleRole('foreman')}
                 >
                   Foreman
                 </button>
                 <button
                   type="button"
                   className={`role-btn ${role === 'worker' ? 'active' : ''}`}
-                  onClick={() => setRole('worker')}
+                  aria-pressed={role === 'worker'}
+                  onClick={() => toggleRole('worker')}
                 >
                   worker
                 </button>
