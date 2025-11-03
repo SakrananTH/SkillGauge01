@@ -7,11 +7,14 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "3002:3002"
     volumes:
       - .:/app
       - /app/node_modules
     environment:
+      - PORT=3002
+      - HOST=0.0.0.0
+      - BROWSER=none
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     stdin_open: true
@@ -25,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "3002:80"
     profiles:
       - prod
 
@@ -35,11 +38,14 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "3002:3002"
     volumes:
       - .:/app
       - /app/node_modules
     environment:
+      - PORT=3002
+      - HOST=0.0.0.0
+      - BROWSER=none
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
       - FAST_REFRESH=true
