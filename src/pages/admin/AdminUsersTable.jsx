@@ -8,7 +8,7 @@ const AdminUsersTable = () => {
       <h2 className="panel-title">Users</h2>
       <div className="filters">
         <div className="search" style={{ maxWidth: 420 }}>
-          <span role="img" aria-label="search">🔎</span>
+          <span role="img" aria-label="search"></span>
           <input placeholder="ค้นหาผู้ใช้..." />
         </div>
         <div className="filter-pills">
