@@ -189,6 +189,25 @@ app.get('/api/users/:id/roles', async (req, res) => {
   }
 });
 
+// Lookup user by phone (simple helper for demo login to fetch user_id)
+const phoneQuerySchema = z.object({ phone: z.string().min(3) });
+app.get('/api/users/by-phone', async (req, res) => {
+  try {
+    const { phone } = phoneQuerySchema.parse(req.query);
+    const { rows } = await pool.query(
+      `SELECT id, full_name, phone, email FROM users WHERE phone = $1 LIMIT 1`,
+      [phone]
+    );
+    if (rows.length === 0) return res.status(404).json({ message: 'not_found' });
+    // also return roles via function if exists
+    const { rows: r2 } = await pool.query('SELECT get_user_roles($1) AS roles', [rows[0].id]);
+    res.json({ ...rows[0], roles: r2[0]?.roles || [] });
+  } catch (e) {
+    console.error(e);
+    res.status(400).json({ message: 'Invalid phone' });
+  }
+});
+
 app.listen(Number(PORT), () => {
   console.log(`Auth API listening on http://localhost:${PORT}`);
 });

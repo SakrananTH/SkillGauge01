@@ -13,11 +13,23 @@ const Login = () => {
     setRole((prev) => (prev === target ? '' : target));
   };
 
-  const onLogin = () => {
+  const API = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+
+  const onLogin = async () => {
     // Simple demo logic: check for Admin credentials first
     if (username === '0863125891' && password === '0863503381') {
       const user = { username, role: 'admin' };
-      try { sessionStorage.setItem('role', 'admin'); } catch {}
+      try {
+        sessionStorage.setItem('role', 'admin');
+        // Try to fetch user_id by phone to store identity
+        const url = new URL('/api/users/by-phone', API);
+        url.searchParams.set('phone', username);
+        const res = await fetch(url);
+        if (res.ok) {
+          const u = await res.json();
+          if (u.id) sessionStorage.setItem('user_id', u.id);
+        }
+      } catch {}
       navigate('/admin', { state: { user, source: 'login' } });
       return;
     }

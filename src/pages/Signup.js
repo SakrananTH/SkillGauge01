@@ -50,8 +50,11 @@ const Signup = () => {
         return;
       }
 
-      const user = await res.json();
-      sessionStorage.setItem('role', user.role || role);
+  const user = await res.json();
+  // Persist identity for later navigation/guard
+  sessionStorage.setItem('role', user.role || role);
+  if (user.id) sessionStorage.setItem('user_id', user.id);
+  if (user.email) sessionStorage.setItem('user_email', user.email);
       // Navigate by role
       if ((user.role || role) === 'project_manager') navigate('/pm');
       else if ((user.role || role) === 'foreman') navigate('/project-tasks');
