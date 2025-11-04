@@ -40,6 +40,29 @@ services:
     profiles:
       - dev
 
+  api:
+    image: node:20-alpine
+    working_dir: /app/server
+    command: sh -c "npm ci && node index.js"
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - CORS_ORIGIN=http://localhost:3002
+      - PGHOST=db
+      - PGPORT=5432
+      - PGDATABASE=skillgauge
+      - PGUSER=skillgauge
+      - PGPASSWORD=skillgauge
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    profiles:
+      - dev
+      - hot
+
   # Production service
   web-prod:
     build:
