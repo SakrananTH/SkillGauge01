@@ -72,6 +72,15 @@
 
 .signup-footer { margin-top: 0.75rem; text-align: center; color: #5f6368; }
 
+.signup-error {
+  color: #b00020;
+  background: #ffe8ea;
+  border: 1px solid #ffccd1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
 @media (max-width: 900px) {
   .signup-page { grid-template-columns: 1fr; padding: 2rem 1rem; }
 }
