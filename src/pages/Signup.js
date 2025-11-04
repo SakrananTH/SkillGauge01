@@ -12,10 +12,55 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const onRegister = () => {
-    // Skip validation for mock; navigate with payload for dashboard testing
-    const user = { fullName: fullName || 'สมิทธิ์ ไม่มีนี่', email: email || 'aunh888@gmail.com', phone: phone || '+66861234567', username: username || '+66861234567', role };
-    navigate('/dashboard', { state: { user, source: 'signup' } });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const onRegister = async () => {
+    setError('');
+    if (!fullName || !phone || !password || !confirmPassword) {
+      setError('กรุณากรอกข้อมูลให้ครบ');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('รหัสผ่านไม่ตรงกัน');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch('http://localhost:4000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          phone,
+          email: email || '',
+          password,
+          role,
+        }),
+      });
+
+      if (res.status === 409) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.message || 'เบอร์โทรหรืออีเมลถูกใช้งานแล้ว');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.message || 'สมัครสมาชิกไม่สำเร็จ');
+        return;
+      }
+
+      const user = await res.json();
+      sessionStorage.setItem('role', user.role || role);
+      // Navigate by role
+      if ((user.role || role) === 'project_manager') navigate('/pm');
+      else if ((user.role || role) === 'foreman') navigate('/project-tasks');
+      else navigate('/skill-assessment');
+    } catch (e) {
+      setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -60,7 +105,10 @@ const Signup = () => {
               <label className="signup-label">Confirm Password</label>
               <input className="signup-input" type="password" placeholder="********" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} />
             </div>
-            <button className="signup-submit" type="button" onClick={onRegister}>Register</button>
+            {error && <div className="signup-error" role="alert">{error}</div>}
+            <button className="signup-submit" type="button" onClick={onRegister} disabled={submitting}>
+              {submitting ? 'Registering…' : 'Register'}
+            </button>
             <div className="signup-footer">
               Already have an account? <Link to="/login">Login</Link>
             </div>
