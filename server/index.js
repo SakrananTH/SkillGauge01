@@ -63,19 +63,30 @@ app.post('/api/auth/signup', async (req, res) => {
         return res.status(409).json({ message: 'Phone or email already exists' });
       }
 
-      const insert = `INSERT INTO users (full_name, phone, email, password_hash, role)
-                      VALUES ($1,$2,$3,$4,$5)
-                      RETURNING id, full_name, phone, email, role, status, created_at`;
-      const { rows } = await client.query(insert, [
+      // 1) insert user
+      const insertUser = `INSERT INTO users (full_name, phone, email, password_hash)
+                          VALUES ($1,$2,$3,$4)
+                          RETURNING id, full_name, phone, email, status, created_at`;
+      const { rows: userRows } = await client.query(insertUser, [
         data.full_name,
         data.phone,
         data.email || null,
         hash,
-        data.role,
       ]);
+
+      const user = userRows[0];
+
+      // 2) attach role via user_roles
+      const roleRes = await client.query('SELECT id FROM roles WHERE key = $1', [data.role]);
+      if (roleRes.rowCount > 0) {
+        await client.query('INSERT INTO user_roles(user_id, role_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [
+          user.id,
+          roleRes.rows[0].id,
+        ]);
+      }
+
       await client.query('COMMIT');
-      const user = rows[0];
-      res.status(201).json(user);
+      res.status(201).json({ ...user, role: data.role });
     } catch (err) {
       await pool.query('ROLLBACK').catch(() => {});
       console.error(err);
