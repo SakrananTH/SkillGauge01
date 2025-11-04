@@ -47,7 +47,10 @@ const ProjectManager = () => {
 
   const loadCounts = async () => {
     try {
-      const res = await fetch(`${API}/api/dashboard/project-task-counts`);
+      const token = sessionStorage.getItem('auth_token');
+      const res = await fetch(`${API}/api/dashboard/project-task-counts`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (!res.ok) throw new Error('failed_counts');
       const data = await res.json();
       setCounts(data);
@@ -67,7 +70,10 @@ const ProjectManager = () => {
       url.searchParams.set('sort', sort);
       if (search) url.searchParams.set('search', search);
       if (status) url.searchParams.set('status', status);
-      const res = await fetch(url);
+      const token = sessionStorage.getItem('auth_token');
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (!res.ok) throw new Error('failed_items');
       const data = await res.json();
       setItems(data.items || []);
@@ -134,7 +140,7 @@ const ProjectManager = () => {
                   <div className="sub">อัปเดตตัวเลขสรุป</div>
                 </div>
                 <div className="time">
-                  <button className="pill" onClick={async()=>{ await fetch(`${API}/api/dashboard/project-task-counts?refresh=true`); loadCounts(); }}>Refresh</button>
+                  <button className="pill" onClick={async()=>{ const token = sessionStorage.getItem('auth_token'); await fetch(`${API}/api/dashboard/project-task-counts?refresh=true`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined }); loadCounts(); }}>Refresh</button>
                 </div>
               </div>
             </div>

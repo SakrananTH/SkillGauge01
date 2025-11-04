@@ -90,3 +90,29 @@
   .signup-page > div:first-child { justify-self: start; }
   .signup-logo-side { justify-self: end; }
 }
+
+/* Eye toggle for password fields */
+.input-with-eye { position: relative; }
+.input-with-eye .signup-input { padding-right: 2.5rem; }
+.input-with-eye .eye-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #5f6368;
+  padding: 0.25rem;
+}
+.input-with-eye .eye-btn svg { width: 20px; height: 20px; display:block; }
+.input-with-eye .eye-btn.is-hide::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  border-top: 2px solid currentColor;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.input-with-eye .eye-btn:focus { outline: 2px solid #ffffff; border-radius: 4px; }

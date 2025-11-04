@@ -30,3 +30,25 @@ Notes:
 - The running DB container name (from docker-compose) is `skillgauge-db`.
 - Default credentials: user `skillgauge`, db `skillgauge`, password `skillgauge`.
 - Keep sensitive data out of version control.
+
+Prebuilt utilities in this folder
+
+- views.sql
+  - v_tasks_overview: รวม task + project + site + assignee ใช้สำหรับแดชบอร์ด/รายงาน
+  - get_user_roles(user_id): คืนค่า roles ของผู้ใช้เป็น array text[]
+  - mv_project_task_counts: materialized view รวมจำนวนงานต่อโครงการ (todo/in-progress/done)
+    - หลังสร้างครั้งแรก ให้สั่ง Refresh ก่อนใช้งานจริง
+      - REFRESH MATERIALIZED VIEW CONCURRENTLY mv_project_task_counts;
+    - ถ้าแก้ definition ให้ DROP แล้ว CREATE ใหม่ (มีตัวอย่างคอมเมนต์ไว้ในไฟล์)
+
+Quick run for views.sql via Docker (Windows PowerShell)
+
+```powershell
+# สร้าง/อัปเดต view, function, mv
+$path = "c:\\Users\\sakra\\OneDrive\\เดสก์ท็อป\\Jsapps\\my-react-app\\db\\manual\\views.sql"
+docker cp $path skillgauge-db:/tmp/views.sql
+docker exec -it skillgauge-db psql -U skillgauge -d skillgauge -f /tmp/views.sql
+
+# รีเฟรชตัวเลขใน materialized view
+docker exec -it skillgauge-db psql -U skillgauge -d skillgauge -c "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_project_task_counts;"
+```

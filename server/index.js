@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { Pool } from 'pg';
 import { z } from 'zod';
 
@@ -15,6 +16,8 @@ const {
   PGPASSWORD = 'skillgauge'
 } = process.env;
 
+const { JWT_SECRET = 'dev_secret_change_me', JWT_EXPIRES_IN = '12h' } = process.env;
+
 const pool = new Pool({
   host: PGHOST,
   port: Number(PGPORT),
@@ -24,7 +27,7 @@ const pool = new Pool({
 });
 
 const app = express();
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.use(cors({ origin: CORS_ORIGIN, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 
 app.get('/api/health', async (_req, res) => {
@@ -101,6 +104,98 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
+// Real login with phone + password, returns JWT and user info
+const loginSchema = z.object({
+  phone: z.string().regex(/^[+0-9]{8,15}$/),
+  password: z.string().min(1),
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { phone, password } = loginSchema.parse(req.body);
+
+    // Find user by phone
+    const { rows } = await pool.query(
+      `SELECT id, full_name, phone, email, password_hash, status
+       FROM users
+       WHERE phone = $1
+       LIMIT 1`,
+      [phone]
+    );
+    if (rows.length === 0) return res.status(401).json({ message: 'invalid_credentials' });
+
+    const user = rows[0];
+    const ok = await bcrypt.compare(password, user.password_hash || '');
+    if (!ok) return res.status(401).json({ message: 'invalid_credentials' });
+
+    // Fetch roles via function if available
+    let roles = [];
+    try {
+      const r2 = await pool.query('SELECT get_user_roles($1) AS roles', [user.id]);
+      roles = r2.rows?.[0]?.roles || [];
+    } catch {}
+
+    // Sign JWT
+    const payload = { sub: user.id, roles };
+    const token = jwt.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: 'skillgauge-api',
+      audience: 'skillgauge-spa',
+    });
+
+    // Return user profile (omit password hash)
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        phone: user.phone,
+        email: user.email,
+        status: user.status,
+        roles,
+      },
+    });
+  } catch (err) {
+    if (err?.issues) return res.status(400).json({ message: 'Invalid input', errors: err.issues });
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== JWT Auth Middleware =====
+function getTokenFromHeader(req) {
+  const h = req.headers?.authorization || req.headers?.Authorization;
+  if (!h || typeof h !== 'string') return null;
+  const [type, token] = h.split(' ');
+  if (type?.toLowerCase() !== 'bearer' || !token) return null;
+  return token;
+}
+
+function requireAuth(req, res, next) {
+  try {
+    const token = getTokenFromHeader(req);
+    if (!token) return res.status(401).json({ message: 'missing_token' });
+    const payload = jwt.verify(token, JWT_SECRET, {
+      issuer: 'skillgauge-api',
+      audience: 'skillgauge-spa',
+    });
+    req.user = { id: payload.sub, roles: payload.roles || [] };
+    next();
+  } catch (e) {
+    return res.status(401).json({ message: 'invalid_token' });
+  }
+}
+
+function authorizeRoles(...allowed) {
+  return (req, res, next) => {
+    const roles = Array.isArray(req.user?.roles) ? req.user.roles : [];
+    if (allowed.length === 0) return next();
+    const ok = roles.some(r => allowed.includes(r));
+    if (!ok) return res.status(403).json({ message: 'forbidden' });
+    next();
+  };
+}
+
 // Dashboard: Tasks overview view with filters/pagination
 const tasksOverviewQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
@@ -111,7 +206,7 @@ const tasksOverviewQuerySchema = z.object({
   sort: z.enum(['due_date_asc', 'due_date_desc']).optional().default('due_date_asc'),
 });
 
-app.get('/api/dashboard/tasks-overview', async (req, res) => {
+app.get('/api/dashboard/tasks-overview', requireAuth, authorizeRoles('project_manager'), async (req, res) => {
   try {
     const params = tasksOverviewQuerySchema.parse(req.query);
     const values = [];
@@ -159,7 +254,7 @@ app.get('/api/dashboard/tasks-overview', async (req, res) => {
 
 // Dashboard: Project task counts from materialized view (optionally refresh)
 const countsQuerySchema = z.object({ refresh: z.coerce.boolean().optional().default(false) });
-app.get('/api/dashboard/project-task-counts', async (req, res) => {
+app.get('/api/dashboard/project-task-counts', requireAuth, authorizeRoles('project_manager'), async (req, res) => {
   try {
     const { refresh } = countsQuerySchema.parse(req.query);
     if (refresh) {

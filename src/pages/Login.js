@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
+import { chooseRole } from '../utils/auth';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ const Login = () => {
   const [role, setRole] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
 
   const toggleRole = (target) => {
     setRole((prev) => (prev === target ? '' : target));
@@ -33,13 +35,37 @@ const Login = () => {
       navigate('/admin', { state: { user, source: 'login' } });
       return;
     }
+    // Real login for PM/FM/WK
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: username, password }),
+      });
+      if (!res.ok) {
+        alert('Invalid phone or password');
+        return;
+      }
+      const data = await res.json();
+  const { token, user } = data;
+      // Persist token and identity
+      try {
+        sessionStorage.setItem('auth_token', token);
+        if (user?.id) sessionStorage.setItem('user_id', user.id);
+        if (user?.email) sessionStorage.setItem('user_email', user.email);
+      } catch {}
 
-    // Otherwise fallback to selected role navigation (no real auth yet)
-    const currentRole = role || 'foreman';
-    const user = { username: username || '+66861234567', role: currentRole };
-    try { sessionStorage.setItem('role', currentRole); } catch {}
-    const dest = role === 'project_manager' ? '/pm' : '/dashboard';
-    navigate(dest, { state: { user, source: 'login' } });
+      // Pick role: prefer selected role if present in server roles; else first role; else worker
+  const serverRoles = Array.isArray(user?.roles) ? user.roles : [];
+  let chosenRole = chooseRole(role, serverRoles);
+      try { sessionStorage.setItem('role', chosenRole); } catch {}
+
+      const dest = chosenRole === 'project_manager' ? '/pm' : '/dashboard';
+      navigate(dest, { state: { user: { username, role: chosenRole }, source: 'login' } });
+    } catch (e) {
+      console.error(e);
+      alert('Login failed');
+    }
   };
 
   return (
@@ -55,7 +81,21 @@ const Login = () => {
             </div>
             <div className="login-row">
               <label className="login-label">Password</label>
-              <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} />
+              <div className="input-with-eye">
+                <input className="login-input" type={showPass ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} />
+                  <button
+                    type="button"
+                    className={`eye-btn ${showPass ? 'is-show' : 'is-hide'}`}
+                    aria-label={showPass ? 'Hide password' : 'Show password'}
+                    onClick={()=>setShowPass(s=>!s)}
+                  >
+                    {/* Bootstrap eye SVG (inline), uses currentColor */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                    </svg>
+                  </button>
+              </div>
             </div>
             <div className="login-links">
               <Link to="#">Forgot password</Link>
