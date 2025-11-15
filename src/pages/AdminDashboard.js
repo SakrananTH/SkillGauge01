@@ -15,10 +15,6 @@ const AdminDashboard = () => {
   const [tab, setTab] = useState('overview');
 
   const kpis = useMemo(() => ([
-    { label: 'Total Users', value: 42 },
-    { label: 'Active Today', value: 17 },
-    { label: 'Projects', value: 8 },
-    { label: 'Pending Approvals', value: 3 },
   ]), []);
 
   return (
@@ -30,9 +26,6 @@ const AdminDashboard = () => {
           <button type="button" className={`menu-item ${tab==='quiz'?'active':''}`} onClick={() => setTab('quiz')}>Skills & Quiz Bank</button>
           <button type="button" className={`menu-item ${tab==='audit'?'active':''}`} onClick={() => setTab('audit')}>Audit Log</button>
           <div style={{ height: 12 }} />
-          <button type="button" className="menu-item" onClick={() => navigate('/dashboard', { state: { user: { ...user, role: 'foreman' } } })}>Impersonate Foreman</button>
-          <button type="button" className="menu-item" onClick={() => navigate('/pm', { state: { user: { ...user, role: 'Project Manager' } } })}>Impersonate PM</button>
-          <button type="button" className="menu-item" onClick={() => navigate('/skill-assessment', { state: { user: { ...user, role: 'worker' } } })}>Impersonate Worker</button>
         </nav>
       </aside>
 
@@ -59,15 +52,15 @@ const AdminDashboard = () => {
             </div>
             <div className="pm-grid" style={{ marginTop: '1rem' }}>
               <div className="panel">
-                <h2 className="panel-title">Recent activity</h2>
+                <h2 className="panel-title"></h2>
                 <ul style={{ margin: 0, paddingLeft: '1rem' }}>
                 </ul>
               </div>
               <div className="panel">
-                <h2 className="panel-title">Quick actions</h2>
+                <h2 className="panel-title"></h2>
                 <div className="filter-pills">
-                  <button className="pill" type="button" onClick={() => setTab('users')}>Create User</button>
-                  <button className="pill" type="button" onClick={() => setTab('quiz')}>Import Questions</button>
+                  <button className="pill" type="button" onClick={() => setTab('users')}></button>
+                  <button className="pill" type="button" onClick={() => setTab('quiz')}></button>
                 </div>
               </div>
             </div>
