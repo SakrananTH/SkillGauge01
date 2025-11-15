@@ -4,7 +4,8 @@ import './Signup.css';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState('project_manager');
+  // All new signups become 'worker' by policy; admin elevates later
+  const [role] = useState('worker');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -37,7 +38,6 @@ const Signup = () => {
           phone,
           email: email || '',
           password,
-          role,
         }),
       });
 
@@ -54,12 +54,13 @@ const Signup = () => {
 
       const user = await res.json();
       // Persist identity for later navigation/guard
-      sessionStorage.setItem('role', user.role || role);
+      sessionStorage.setItem('role', user.role || 'worker');
       if (user.id) sessionStorage.setItem('user_id', user.id);
       if (user.email) sessionStorage.setItem('user_email', user.email);
       // Navigate by role
-      if ((user.role || role) === 'project_manager') navigate('/pm');
-      else if ((user.role || role) === 'foreman') navigate('/project-tasks');
+      const finalRole = user.role || 'worker';
+      if (finalRole === 'project_manager') navigate('/pm');
+      else if (finalRole === 'foreman') navigate('/project-tasks');
       else navigate('/skill-assessment');
     } catch (e) {
       setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');

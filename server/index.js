@@ -45,7 +45,6 @@ const signupSchema = z.object({
   phone: z.string().regex(/^[+0-9]{8,15}$/),
   email: z.string().email().optional().or(z.literal('')),
   password: z.string().min(8),
-  role: z.enum(['worker', 'foreman', 'project_manager']).optional().default('worker'),
 });
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -80,7 +79,8 @@ app.post('/api/auth/signup', async (req, res) => {
       const user = userRows[0];
 
       // 2) attach role via user_roles
-      const roleRes = await client.query('SELECT id FROM roles WHERE key = $1', [data.role]);
+      // Always assign 'worker' role on signup; admin can elevate later
+      const roleRes = await client.query('SELECT id FROM roles WHERE key = $1', ['worker']);
       if (roleRes.rowCount > 0) {
         await client.query('INSERT INTO user_roles(user_id, role_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [
           user.id,
@@ -89,9 +89,9 @@ app.post('/api/auth/signup', async (req, res) => {
       }
 
       await client.query('COMMIT');
-      res.status(201).json({ ...user, role: data.role });
+      res.status(201).json({ ...user, role: 'worker' });
     } catch (err) {
-      await pool.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch(() => {});
       console.error(err);
       res.status(500).json({ message: 'Server error' });
     } finally {
@@ -100,6 +100,40 @@ app.post('/api/auth/signup', async (req, res) => {
   } catch (err) {
     if (err?.issues) return res.status(400).json({ message: 'Invalid input', errors: err.issues });
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Admin: Manage user roles (grant/revoke) =====
+const roleKeySchema = z.object({ role: z.enum(['worker', 'foreman', 'project_manager']) });
+
+app.post('/api/admin/users/:id/roles/grant', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!z.string().uuid().safeParse(id).success) return res.status(400).json({ message: 'invalid id' });
+    const { role } = roleKeySchema.parse(req.body);
+    const { rows: r } = await pool.query('SELECT id FROM roles WHERE key = $1', [role]);
+    if (!r.length) return res.status(400).json({ message: 'unknown_role' });
+    await pool.query('INSERT INTO user_roles(user_id, role_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [id, r[0].id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/users/:id/roles/revoke', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!z.string().uuid().safeParse(id).success) return res.status(400).json({ message: 'invalid id' });
+    const { role } = roleKeySchema.parse(req.body);
+    // Prevent removing 'worker' if you want to ensure baseline; allow removal for flexibility
+    const { rows: r } = await pool.query('SELECT id FROM roles WHERE key = $1', [role]);
+    if (!r.length) return res.status(400).json({ message: 'unknown_role' });
+    await pool.query('DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2', [id, r[0].id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
     res.status(500).json({ message: 'Server error' });
   }
 });
