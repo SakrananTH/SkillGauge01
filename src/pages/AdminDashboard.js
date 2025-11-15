@@ -61,9 +61,6 @@ const AdminDashboard = () => {
               <div className="panel">
                 <h2 className="panel-title">Recent activity</h2>
                 <ul style={{ margin: 0, paddingLeft: '1rem' }}>
-                  <li>ผู้ใช้ใหม่ 2 บัญชี</li>
-                  <li>อัพเดตคำถามแบบทดสอบ 5 ข้อ</li>
-                  <li>ปิดใช้งานผู้ใช้ 1 บัญชี</li>
                 </ul>
               </div>
               <div className="panel">
