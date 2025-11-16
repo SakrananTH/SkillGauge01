@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=BBH+Sans+Bogle&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+Thai:wght@100..900&display=swap');
+
 .admin-quiz-bank {
   padding: 1rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .quiz-header {
@@ -13,6 +16,7 @@
   margin: 0;
   font-size: 1.5rem;
   color: #fff;
+  font-weight: 800;
 }
 
 .quiz-form-card {
@@ -27,6 +31,7 @@
   margin-top: 0;
   margin-bottom: 1rem;
   color: #fff;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .form-row {
@@ -38,6 +43,7 @@
   margin-bottom: 0.5rem;
   color: #ccc;
   font-size: 0.9rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .form-row textarea,
@@ -72,6 +78,7 @@
   margin-bottom: 0.5rem;
   color: #ccc;
   font-size: 0.9rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .form-col select {
