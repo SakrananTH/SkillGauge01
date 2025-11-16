@@ -30,6 +30,19 @@ const app = express();
 app.use(cors({ origin: CORS_ORIGIN, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 
+// --- Utils ---
+// Normalize Thai phone numbers to E.164 where possible
+function normalizePhoneTH(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return raw;
+  if (raw.startsWith('+')) return raw; // assume already E.164
+  // 0XXXXXXXXX -> +66XXXXXXXXX (Thai local to E.164)
+  if (/^0\d{9}$/.test(raw)) return `+66${raw.slice(1)}`;
+  // 66XXXXXXXXX -> +66XXXXXXXXX
+  if (/^66\d{9}$/.test(raw)) return `+${raw}`;
+  return raw;
+}
+
 app.get('/api/health', async (_req, res) => {
   try {
     const { rows } = await pool.query('SELECT NOW() as now');
@@ -50,6 +63,7 @@ const signupSchema = z.object({
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const data = signupSchema.parse(req.body);
+    const normalizedPhone = normalizePhoneTH(data.phone);
     const client = await pool.connect();
     try {
       const hash = await bcrypt.hash(data.password, 10);
@@ -58,7 +72,7 @@ app.post('/api/auth/signup', async (req, res) => {
       // duplicate check by phone or email(lower)
       const dup = await client.query(
         `SELECT 1 FROM users WHERE phone = $1 OR (email IS NOT NULL AND lower(email) = lower($2))`,
-        [data.phone, data.email || null]
+        [normalizedPhone, data.email || null]
       );
       if (dup.rowCount > 0) {
         await client.query('ROLLBACK');
@@ -71,7 +85,7 @@ app.post('/api/auth/signup', async (req, res) => {
                           RETURNING id, full_name, phone, email, status, created_at`;
       const { rows: userRows } = await client.query(insertUser, [
         data.full_name,
-        data.phone,
+        normalizedPhone,
         data.email || null,
         hash,
       ]);
@@ -147,14 +161,15 @@ const loginSchema = z.object({
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { phone, password } = loginSchema.parse(req.body);
+    const normalized = normalizePhoneTH(phone);
 
     // Find user by phone
     const { rows } = await pool.query(
       `SELECT id, full_name, phone, email, password_hash, status
        FROM users
-       WHERE phone = $1
+       WHERE phone = $1 OR phone = $2
        LIMIT 1`,
-      [phone]
+      [phone, normalized]
     );
     if (rows.length === 0) return res.status(401).json({ message: 'invalid_credentials' });
 
