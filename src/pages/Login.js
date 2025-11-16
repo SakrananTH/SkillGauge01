@@ -10,6 +10,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState('');
 
   const toggleRole = (target) => {
     setRole((prev) => (prev === target ? '' : target));
@@ -18,6 +19,13 @@ const Login = () => {
   const API = process.env.REACT_APP_API_URL || 'http://localhost:4000';
 
   const onLogin = async () => {
+    setError(''); // Clear previous errors
+    
+    if (!username || !password) {
+      setError('กรุณากรอก Username และ Password');
+      return;
+    }
+    
     // Simple demo logic: check for Admin credentials first
     if (username === '0863125891' && password === '0863503381') {
       const user = { username, role: 'admin' };
@@ -43,7 +51,7 @@ const Login = () => {
         body: JSON.stringify({ phone: username, password }),
       });
       if (!res.ok) {
-        alert('Invalid phone or password');
+        setError('Username หรือ Password ไม่ถูกต้อง');
         return;
       }
       const data = await res.json();
@@ -64,7 +72,7 @@ const Login = () => {
       navigate(dest, { state: { user: { username, role: chosenRole }, source: 'login' } });
     } catch (e) {
       console.error(e);
-      alert('Login failed');
+      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
     }
   };
 
@@ -75,6 +83,20 @@ const Login = () => {
           <h1 className="login-header"></h1>
 
           <div className="login-card">
+            {error && (
+              <div style={{
+                padding: '12px',
+                marginBottom: '16px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                color: '#ef4444',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                {error}
+              </div>
+            )}
             <div className="login-row">
               <label className="login-label">Username</label>
               <input className="login-input" placeholder="เบอร์โทรศัพท์" value={username} onChange={e=>setUsername(e.target.value)} />
