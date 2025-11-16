@@ -19,6 +19,13 @@
   font-weight: 800;
 }
 
+/* Ensure header action button uses the same fonts */
+.admin-quiz-bank .pill,
+.admin-quiz-bank .pill.primary {
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+  font-weight: 600;
+}
+
 .quiz-form-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
