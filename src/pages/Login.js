@@ -87,8 +87,8 @@ const Login = () => {
               <div style={{
                 padding: '12px',
                 marginBottom: '16px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                backgroundColor: 'rgba(255, 255, 255, 0)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
                 borderRadius: '8px',
                 color: '#ef4444',
                 fontSize: '14px',
@@ -121,32 +121,6 @@ const Login = () => {
             </div>
             <div className="login-links">
               <Link to="#">Forgot password</Link>
-              <div className="role-toggle">
-                <button
-                  type="button"
-                  className={`role-btn ${role === 'project_manager' ? 'active' : ''}`}
-                  aria-pressed={role === 'project_manager'}
-                  onClick={() => toggleRole('project_manager')}
-                >
-                  Project Manager
-                </button>
-                <button
-                  type="button"
-                  className={`role-btn ${role === 'foreman' ? 'active' : ''}`}
-                  aria-pressed={role === 'foreman'}
-                  onClick={() => toggleRole('foreman')}
-                >
-                  Foreman
-                </button>
-                <button
-                  type="button"
-                  className={`role-btn ${role === 'worker' ? 'active' : ''}`}
-                  aria-pressed={role === 'worker'}
-                  onClick={() => toggleRole('worker')}
-                >
-                  worker
-                </button>
-              </div>
             </div>
             <button className="login-submit" type="button" onClick={onLogin}>Login</button>
             <div className="login-footer-link">
