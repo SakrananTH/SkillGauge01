@@ -26,7 +26,8 @@
   background: #ffffff;
   border: 1px solid #e8eaed;
   border-radius: 8px;
-  padding: 1.25rem;
+  padding: 2rem 2.5rem;
+  min-width: 420px;
 }
 
 .login-label {
@@ -37,11 +38,12 @@
 
 .login-input {
   width: 100%;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.2rem;
   border: 1px solid #e0e3e7;
   border-radius: 8px;
   background: #f8fbff;
   outline: none;
+  font-size: 1rem;
 }
 
 .login-input:focus {
@@ -50,7 +52,7 @@
 }
 
 .login-row {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Eye toggle for password */
@@ -114,19 +116,20 @@
 }
 
 .login-submit {
-  margin-top: 0.9rem;
+  margin-top: 1.5rem;
   width: 100%;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.2rem;
   border-radius: 8px;
   background: #6cabff;
   color: #fff;
   font-weight: 600;
+  font-size: 1rem;
   border: none;
   cursor: pointer;
 }
 
 .login-submit:hover {
-  background: #0850ad;
+  background: #3865a0;
 }
 
 .login-footer-link {
