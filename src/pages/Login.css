@@ -1,9 +1,12 @@
 /* Login page styles matching the provided mock */
+@import url('https://fonts.googleapis.com/css2?family=BBH+Sans+Bogle&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Sans+Thai:wght@100..900&display=swap');
+
 .login-screen {
   min-height: calc(100vh - 74px);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 .login-page {
   display: grid;
@@ -34,16 +37,18 @@
   font-size: 0.9rem;
   color: #5f6368;
   margin-bottom: 0.35rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .login-input {
   width: 100%;
-  padding: 1rem 1.2rem;
+  padding:1rem;
   border: 1px solid #e0e3e7;
   border-radius: 8px;
   background: #f8fbff;
   outline: none;
-  font-size: 1rem;
+  font-size: 0.7rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .login-input:focus {
@@ -92,6 +97,7 @@
   flex-wrap: wrap; /* wrap on small widths */
   margin: 0.75rem 0 1rem 0;
   overflow: unset;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .role-toggle {
@@ -126,6 +132,7 @@
   font-size: 1rem;
   border: none;
   cursor: pointer;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .login-submit:hover {
@@ -137,6 +144,7 @@
   margin-top: 3rem;
   text-align: center;
   color: #5f6368;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .login-logo-side {
