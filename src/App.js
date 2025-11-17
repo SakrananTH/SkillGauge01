@@ -14,6 +14,7 @@ import ProjectManager from './pages/ProjectManager';
 import ProjectTasks from './pages/Project_Tasks';
 import SkillAssessmentTest from './pages/Skill Assessment Test';
 import SkillAssessmentQuiz from './pages/Skill Assessment Quiz';
+import WorkerProfile from './pages/WorkerProfile';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="login" element={<Login />} />
             <Route path="signup" element={<Signup />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="worker-profile" element={<WorkerProfile />} />
             <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="pm" element={<ProjectManager />} />
             <Route path="project-tasks" element={<ProjectTasks />} />

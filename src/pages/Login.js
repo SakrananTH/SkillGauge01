@@ -68,8 +68,16 @@ const Login = () => {
   let chosenRole = chooseRole(role, serverRoles);
       try { sessionStorage.setItem('role', chosenRole); } catch {}
 
-      const dest = chosenRole === 'project_manager' ? '/pm' : '/dashboard';
-      navigate(dest, { state: { user: { username, role: chosenRole }, source: 'login' } });
+      // Check if worker profile is completed
+      const hasProfile = sessionStorage.getItem('worker_profile');
+      
+      if (chosenRole === 'project_manager') {
+        navigate('/pm', { state: { user: { username, role: chosenRole }, source: 'login' } });
+      } else if (chosenRole === 'worker' && !hasProfile) {
+        navigate('/worker-profile', { state: { user: { username, role: chosenRole }, source: 'login' } });
+      } else {
+        navigate('/dashboard', { state: { user: { username, role: chosenRole }, source: 'login' } });
+      }
     } catch (e) {
       console.error(e);
       setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');

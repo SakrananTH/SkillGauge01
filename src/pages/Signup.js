@@ -61,7 +61,7 @@ const Signup = () => {
       const finalRole = user.role || 'worker';
       if (finalRole === 'project_manager') navigate('/pm');
       else if (finalRole === 'foreman') navigate('/project-tasks');
-      else navigate('/skill-assessment');
+      else navigate('/worker-profile', { state: { user: { ...user, role: finalRole } } });
     } catch (e) {
       setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
     } finally {

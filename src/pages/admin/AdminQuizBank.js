@@ -142,24 +142,26 @@ const AdminQuizBank = () => {
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
-                  <option value="safety">Safety (ความปลอดภัย)</option>
-                  <option value="electrical">Electrical (ไฟฟ้า)</option>
-                  <option value="plumbing">Plumbing (ประปา)</option>
-                  <option value="carpentry">Carpentry (ช่างไม้)</option>
-                  <option value="masonry">Masonry (ช่างก่อ)</option>
-                  <option value="general">General (ทั่วไป)</option>
+                  <option value="safety">1.ช่างโครงสร้าง</option>
+                  <option value="electrical">2.ช่างไฟฟ้า</option>
+                  <option value="plumbing">3.ช่างประปา</option>
+                  <option value="carpentry">4.ช่างก่ออิฐฉาบปูน</option>
+                  <option value="masonry">5.ช่างประตู-หน้าต่าง</option>
+                  <option value="general">6.ช่างฝ้าเพดาน</option>
+                  <option value="other">7.ช่างหลังคา</option>
+                  <option value="other">8.ช่างกระเบื้อง</option>
+                  <option value="other">9.ไม่มี</option>
                 </select>
               </div>
-
               <div className="form-col">
                 <label>ระดับความยาก</label>
                 <select
                   value={form.difficulty}
                   onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
                 >
-                  <option value="easy">Easy (ง่าย)</option>
-                  <option value="medium">Medium (ปานกลาง)</option>
-                  <option value="hard">Hard (ยาก)</option>
+                  <option value="easy">ระดับที่ 1</option>
+                  <option value="medium">ระดับที่ 2</option>
+                  <option value="hard">ระดับที่ 3</option>
                 </select>
               </div>
             </div>
