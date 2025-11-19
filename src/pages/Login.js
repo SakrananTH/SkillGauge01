@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
 import { chooseRole } from '../utils/auth';
@@ -11,6 +11,22 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+
+  useEffect(() => {
+    try {
+      const pre = sessionStorage.getItem('login_prefill_username');
+      if (pre) {
+        setUsername(pre);
+        sessionStorage.removeItem('login_prefill_username');
+      }
+      const msg = sessionStorage.getItem('login_message');
+      if (msg) {
+        setInfo(msg);
+        sessionStorage.removeItem('login_message');
+      }
+    } catch {}
+  }, []);
 
   const toggleRole = (target) => {
     setRole((prev) => (prev === target ? '' : target));
@@ -91,6 +107,20 @@ const Login = () => {
           <h1 className="login-header"></h1>
 
           <div className="login-card">
+            {info && (
+              <div style={{
+                padding: '12px',
+                marginBottom: '16px',
+                backgroundColor: '#e6f4ea',
+                border: '1px solid #c7e8cf',
+                borderRadius: '8px',
+                color: '#137333',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                {info}
+              </div>
+            )}
             {error && (
               <div style={{
                 padding: '12px',

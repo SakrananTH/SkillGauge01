@@ -4,144 +4,337 @@ import './Signup.css';
 
 const Signup = () => {
   const navigate = useNavigate();
-  // All new signups become 'worker' by policy; admin elevates later
-  const [role] = useState('worker');
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  
+  // helpers: format Thai ID and phone for display while typing
+  const formatThaiId = (v) => {
+    const d = (v || '').replace(/\D/g, '').slice(0, 13);
+    const parts = [];
+    if (d.length > 0) parts.push(d.slice(0, 1));
+    if (d.length > 1) parts.push(d.slice(1, 5));
+    if (d.length > 5) parts.push(d.slice(5, 10));
+    if (d.length > 10) parts.push(d.slice(10, 12));
+    if (d.length > 12) parts.push(d.slice(12, 13));
+    return parts.join('-');
+  };
+
+  const formatPhone = (v) => {
+    const d = (v || '').replace(/\D/g, '').slice(0, 10);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
+    return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  };
+
+  const [formData, setFormData] = useState({
+    skill: '',
+    name: '',
+    surname: '',
+    idCard: '',
+    phoneNumber: '',
+    address: '',
+    addressDetails: '',
+    birthDay: '',
+    birthMonth: '',
+    birthYear: '',
+    province: '',
+    category: '',
+    PostalCode: ''
+  });
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
 
-  const onRegister = async () => {
-    setError('');
-    if (!fullName || !phone || !password || !confirmPassword) {
-      setError('กรุณากรอกข้อมูลให้ครบ');
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let next = value;
+    if (name === 'idCard') next = formatThaiId(value);
+    if (name === 'phoneNumber') next = formatPhone(value);
+    setFormData(prev => ({
+      ...prev,
+      [name]: next
+    }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.skill) newErrors.skill = 'กรุณาเลือกคำนำหน้า';
+    if (!formData.name.trim()) newErrors.name = 'กรุณากรอกชื่อ';
+    if (!formData.surname.trim()) newErrors.surname = 'กรุณากรอกนามสกุล';
+    if (!formData.idCard.trim()) newErrors.idCard = 'กรุณากรอกเลขบัตรประชาชน';
+    else if (!/^\d{13}$/.test(formData.idCard.replace(/\D/g, ''))) {
+      newErrors.idCard = 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก';
+    }
+    const phoneDigits = (formData.phoneNumber || '').replace(/\D/g, '');
+    if (!phoneDigits) newErrors.phoneNumber = 'กรุณากรอกเบอร์โทรศัพท์';
+    else if (!(phoneDigits.length === 9 || phoneDigits.length === 10)) {
+      newErrors.phoneNumber = 'กรุณากรอกเบอร์ 9-10 หลัก';
+    }
+    if (!formData.birthDay || !formData.birthMonth || !formData.birthYear) {
+      newErrors.birthDate = 'กรุณาเลือกวันเกิดให้ครบถ้วน';
+    }
+    if (!formData.address.trim()) newErrors.address = 'กรุณากรอกที่อยู่';
+    if (!formData.addressDetails.trim()) newErrors.addressDetails = 'กรุณากรอกอำเภอ/เขต';
+    if (!formData.province.trim()) newErrors.province = 'กรุณากรอกจังหวัด';
+      if (!formData.category) newErrors.category = 'กรุณาเลือกหมวดหมู่';
+      if (!formData.PostalCode || !formData.PostalCode.trim()) newErrors.PostalCode = 'กรุณากรอกรหัสไปรษณีย์';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const onRegister = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
-    if (password !== confirmPassword) {
-      setError('รหัสผ่านไม่ตรงกัน');
-      return;
-    }
+
     setSubmitting(true);
     try {
-      const res = await fetch('http://localhost:4000/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: fullName,
-          phone,
-          email: email || '',
-          password,
-        }),
-      });
+      // Build birthDate from day, month, year
+      const birthDate = `${formData.birthYear}-${String(formData.birthMonth).padStart(2, '0')}-${String(formData.birthDay).padStart(2, '0')}`;
+      const sanitizedPhone = formData.phoneNumber.replace(/\D/g, '');
 
-      if (res.status === 409) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.message || 'เบอร์โทรหรืออีเมลถูกใช้งานแล้ว');
-        return;
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.message || 'สมัครสมาชิกไม่สำเร็จ');
-        return;
-      }
+      // Persist Step 1 profile data, exclude phone/password
+      const profileDraft = {
+        skill: formData.skill,
+        name: formData.name,
+        surname: formData.surname,
+        idCard: formData.idCard,
+        phoneNumber: sanitizedPhone,
+        address: formData.address,
+        addressDetails: formData.addressDetails,
+        province: formData.province,
+        category: formData.category,
+        birthDate,
+        PostalCode: formData.PostalCode || ''
+      };
+      sessionStorage.setItem('signup_profile', JSON.stringify(profileDraft));
 
-      const user = await res.json();
-      // Persist identity for later navigation/guard
-      sessionStorage.setItem('role', user.role || 'worker');
-      if (user.id) sessionStorage.setItem('user_id', user.id);
-      if (user.email) sessionStorage.setItem('user_email', user.email);
-      // Navigate by role
-      const finalRole = user.role || 'worker';
-      if (finalRole === 'project_manager') navigate('/pm');
-      else if (finalRole === 'foreman') navigate('/project-tasks');
-      else navigate('/worker-profile', { state: { user: { ...user, role: finalRole } } });
-    } catch (e) {
-      setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+      // Go to credentials step
+      navigate('/signup/credentials');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="signup-screen">
-      <div className="signup-page">
-        <div className="signup-logo-side">
-          <img src="/logo123.png" alt="SkillGauge" />
-        </div>
+    <div className="profile-page">
+      <div className="profile-container">
+        <h2 className="profile-title">ลงทะเบียน</h2>
+        <p className="profile-subtitle">อย่าลืมเช็คความถูกต้องก่อนบันทึกข้อมูล</p>
 
-        <div>
-          <h1 className="signup-header"></h1>
-          <div className="signup-card">
-            <div className="signup-row">
-              <label className="signup-label">Full Name</label>
-              <input className="signup-input" placeholder="ชื่อ-นามสกุล" value={fullName} onChange={e=>setFullName(e.target.value)} />
+        <form onSubmit={onRegister}>
+          {/* คำนำหน้า */}
+          <div className="form-group">
+            <label>คำนำหน้า</label>
+            <select
+              name="skill"
+              value={formData.skill}
+              onChange={handleChange}
+              className={errors.skill ? 'error' : ''}
+            >
+              <option value="">เลือกคำนำหน้า</option>
+              <option value="นาย">นาย</option>
+              <option value="นาง">นาง</option>
+              <option value="นางสาว">นางสาว</option>
+            </select>
+            {errors.skill && <span className="error-message">{errors.skill}</span>}
+          </div>
+
+          {/* ชื่อ - นามสกุล */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>ชื่อ</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="ชื่อ"
+                className={errors.name ? 'error' : ''}
+              />
+              {errors.name && <span className="error-message">{errors.name}</span>}
             </div>
-            <div className="signup-row">
-              <label className="signup-label">Email</label>
-              <input className="signup-input" type="email" placeholder="sakya@gmail.com" value={email} onChange={e=>setEmail(e.target.value)} />
-            </div>
-            <div className="signup-row">
-              <label className="signup-label">Username</label>
-              <input className="signup-input" placeholder="เบอร์โทรศัพท์" value={username} onChange={e=>setUsername(e.target.value)} />
-            </div>
-            <div className="signup-row">
-              <label className="signup-label">Phone Number</label>
-              <input className="signup-input" placeholder="086-xxxx-xxx" value={phone} onChange={e=>setPhone(e.target.value)} />
-            </div>
-            <div className="signup-row">
-              <label className="signup-label">birthday</label>
-              <input className="signup-input" type="date" placeholder="dd/mm/yyyy" />
-            </div>
-            <div className="signup-row">
-              <label className="signup-label">Password</label>
-              <div className="input-with-eye">
-                <input className="signup-input" type={showPass ? 'text' : 'password'} placeholder="********" value={password} onChange={e=>setPassword(e.target.value)} />
-                  <button
-                    type="button"
-                    className={`eye-btn ${showPass ? 'is-show' : 'is-hide'}`}
-                    aria-label={showPass ? 'Hide password' : 'Show password'}
-                    onClick={()=>setShowPass(s=>!s)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
-                      <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>
-                      <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
-                    </svg>
-                  </button>
-              </div>
-            </div>
-            <div className="signup-row">
-              <label className="signup-label">Confirm Password</label>
-              <div className="input-with-eye">
-                <input className="signup-input" type={showConfirm ? 'text' : 'password'} placeholder="********" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} />
-                  <button
-                    type="button"
-                    className={`eye-btn ${showConfirm ? 'is-show' : 'is-hide'}`}
-                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                    onClick={()=>setShowConfirm(s=>!s)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
-                      <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>
-                      <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
-                    </svg>
-                  </button>
-              </div>
-            </div>
-            {error && <div className="signup-error" role="alert">{error}</div>}
-            <button className="signup-submit" type="button" onClick={onRegister} disabled={submitting}>
-              {submitting ? 'Registering…' : 'Register'}
-            </button>
-            <div className="signup-footer">
-              Already have an account? <Link to="/login">Login</Link>
+            <div className="form-group">
+              <label>นามสกุล</label>
+              <input
+                type="text"
+                name="surname"
+                value={formData.surname}
+                onChange={handleChange}
+                placeholder="นามสกุล"
+                className={errors.surname ? 'error' : ''}
+              />
+              {errors.surname && <span className="error-message">{errors.surname}</span>}
             </div>
           </div>
-        </div>
+
+          {/* เลขบัตรประชาชน */}
+          <div className="form-group">
+            <label>เลขบัตรประชาชน 13 หลัก</label>
+            <input
+              type="text"
+              name="idCard"
+              value={formData.idCard}
+              onChange={handleChange}
+              placeholder="x-xxxx-xxxxx-xx-x"
+              maxLength="17"
+              className={errors.idCard ? 'error' : ''}
+            />
+            {errors.idCard && <span className="error-message">{errors.idCard}</span>}
+          </div>
+          {/* เบอร์โทรศัพท์ (แสดงใต้เลขบัตร) */}
+          <div className="form-group">
+            <label>หมวดหมู่</label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className={errors.category ? 'error' : ''}
+            >
+              <option value="">เลือกหมวดหมู่</option>
+              <option value="othe0">1.ไม่มี</option>
+              <option value="othe1">2.ช่างไฟฟ้า</option>
+              <option value="othe2">3.ช่างประปา</option>
+              <option value="othe3">4.ช่างก่ออิฐฉาบปูน</option>
+              <option value="othe4">5.ช่างประตู-หน้าต่าง</option>
+              <option value="othe5">6.ช่างฝ้าเพดาน</option>
+              <option value="othe6">7.ช่างหลังคา</option>
+              <option value="othe7">8.ช่างกระเบื้อง</option>
+              <option value="othe">9.ช่างโครงสร้าง</option>
+            </select>
+            {errors.category && <span className="error-message">{errors.category}</span>}
+          </div>
+           <div className="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input
+              type="text"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              placeholder="08x-xxx-xxxx"
+              maxLength="13"
+              className={errors.phoneNumber ? 'error' : ''}
+            />
+            {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
+          </div>
+          {/* วันเกิด - ตำบล/แขวง - จังหวัด */}
+          <div className="form-group">
+            <label>วันเกิด</label>
+            <div className="date-grid">
+              <select
+                name="birthDay"
+                value={formData.birthDay || ''}
+                onChange={handleChange}
+                className={errors.birthDate ? 'error' : ''}
+              >
+                <option value="">วัน</option>
+                {[...Array(31)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                ))}
+              </select>
+              <select
+                name="birthMonth"
+                value={formData.birthMonth || ''}
+                onChange={handleChange}
+                className={errors.birthDate ? 'error' : ''}
+              >
+                <option value="">เดือน</option>
+                <option value="1">มกราคม</option>
+                <option value="2">กุมภาพันธ์</option>
+                <option value="3">มีนาคม</option>
+                <option value="4">เมษายน</option>
+                <option value="5">พฤษภาคม</option>
+                <option value="6">มิถุนายน</option>
+                <option value="7">กรกฎาคม</option>
+                <option value="8">สิงหาคม</option>
+                <option value="9">กันยายน</option>
+                <option value="10">ตุลาคม</option>
+                <option value="11">พฤศจิกายน</option>
+                <option value="12">ธันวาคม</option>
+              </select>
+              <select
+                name="birthYear"
+                value={formData.birthYear || ''}
+                onChange={handleChange}
+                className={errors.birthDate ? 'error' : ''}
+              >
+                <option value="">ปี</option>
+                {[...Array(100)].map((_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return <option key={year} value={year}>{year}</option>;
+                })}
+              </select>
+            </div>
+            {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
+          </div>
+          {/* ที่อยู่ */}
+          <div className="form-group">
+            <label>ที่อยู่</label>
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="บ้านเลขที่ หมู่ ถนน"
+              rows="3"
+              className={errors.address ? 'error' : ''}
+            ></textarea>
+            {errors.address && <span className="error-message">{errors.address}</span>}
+          </div>
+          <div className="form-group">
+            <label>รหัสไปรษณีย์</label>
+            <input
+              type="text"
+              name="PostalCode"
+              value={formData.PostalCode}
+              onChange={handleChange}
+              placeholder="รหัสไปรษณีย์"
+              className={errors.PostalCode ? 'error' : ''}
+            />
+            {errors.PostalCode && <span className="error-message">{errors.PostalCode}</span>}
+          </div>
+          {/* ตำบล/แขวง - จังหวัด */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>ตำบล/แขวง</label>
+              <input
+                type="text"
+                name="addressDetails"
+                value={formData.addressDetails}
+                onChange={handleChange}
+                placeholder="ตำบล/แขวง"
+                className={errors.addressDetails ? 'error' : ''}
+              />
+              {errors.addressDetails && <span className="error-message">{errors.addressDetails}</span>}
+            </div>
+            <div className="form-group">
+              <label>จังหวัด</label>
+              <input
+                type="text"
+                name="province"
+                value={formData.province}
+                onChange={handleChange}
+                placeholder="จังหวัด"
+                className={errors.province ? 'error' : ''}
+              />
+              {errors.province && <span className="error-message">{errors.province}</span>}
+            </div>
+          </div>
+          {/* อีเมล */}
+          {/* Confirm Password */}
+          {/* Submit Button */}
+          <button type="submit" className="submit-btn" disabled={submitting}>
+            {submitting ? 'กำลังลงทะเบียน...' : 'บันทึก และไปต่อ →'}
+          </button>
+
+          <div className="login-link">
+            มีบัญชีอยู่แล้ว? <Link to="/login">เข้าสู่ระบบ</Link>
+          </div>
+        </form>
       </div>
     </div>
   );

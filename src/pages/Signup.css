@@ -1,13 +1,254 @@
-.signup-screen {
-  min-height: calc(100vh - 74px);
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+
+.signup-screen,
+.profile-page {
+  min-height: 100vh;
+  background: white;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 2rem 1rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
+.profile-subtitle {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #5f6368;
+  margin: 0 0 1.5rem 0;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+.profile-container {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  max-width: 700px;
+  width: 100%;
+  padding: 2.5rem;
+}
+
+.profile-title {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #537dbd;
+  margin: 0 0 2rem 0;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2b3a52;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e0e3e7;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #2b3a52;
+  background: #ffffff;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #adb5bd;
+}
+
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+  border-color: #dc3545;
+}
+
+.error-message {
+  font-size: 1rem;
+  color: #dc3545;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-row-inli {
+  margin-bottom: 1.25rem;
+}
+
+.form-c {
+  font-size: 1rem;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.form-c select {
+  width: 100%;
+}
+
+.date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.form-c label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2b3a52;
+  margin-bottom: 0.5rem;
+  display: block;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.form-c select {
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e0e3e7;
+  background: #fff;
+  color: #2b3a52;
+  font-size: 0.95rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.form-c select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.date-grid select {
+  font-size: 0.95rem;
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e0e3e7;
+  background: #fff;
+  color: #2b3a52;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.date-grid select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.submit-btn {
+  margin-top: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgb(134, 166, 255);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+  width: 100%;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Password Input with Eye Toggle */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 3rem;
+}
+
+.eye-toggle {
+  position: absolute;
+  right: 0.875rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5f6368;
+  transition: color 0.2s ease;
+}
+
+.eye-toggle:hover {
+  color: #667eea;
+}
+
+.eye-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Login Link */
+.login-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #5f6368;
+}
+
+.login-link a {
+  color: #2e3142;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.login-link a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+/* Old styles kept for compatibility */
 .signup-page {
   display: grid;
-  grid-template-columns: 0.9fr 1.1fr; /* logo left, form right */
+  grid-template-columns: 0.9fr 1.1fr;
   gap: 2rem;
   align-items: center;
   max-width: 1200px;

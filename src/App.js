@@ -9,12 +9,12 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
 import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import ProjectManager from './pages/ProjectManager';
-import ProjectTasks from './pages/Project_Tasks';
-import SkillAssessmentTest from './pages/Skill Assessment Test';
-import SkillAssessmentQuiz from './pages/Skill Assessment Quiz';
-import WorkerProfile from './pages/WorkerProfile';
+import SignupCredentials from './pages/SignupCredentials';
+import WKDashboard from './pages/WKDashboard';
+import PMProjectManager from './pages/PMProjectManager';
+import WKProjectTasks from './pages/WKProject_Tasks';
+import WKSkillAssessmentTest from './pages/WKSkill_Assessment_Test';
+import WKSkillAssessmentQuiz from './pages/WKSkill_Assessment_Quiz';
 import './App.css';
 
 function App() {
@@ -30,13 +30,13 @@ function App() {
             <Route path="contact" element={<Contact />} />
             <Route path="login" element={<Login />} />
             <Route path="signup" element={<Signup />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="worker-profile" element={<WorkerProfile />} />
+            <Route path="signup/credentials" element={<SignupCredentials />} />
+            <Route path="dashboard" element={<WKDashboard />} />
             <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="pm" element={<ProjectManager />} />
-            <Route path="project-tasks" element={<ProjectTasks />} />
-            <Route path="skill-assessment" element={<SkillAssessmentTest />} />
-            <Route path="skill-assessment/quiz" element={<SkillAssessmentQuiz />} />
+            <Route path="pm" element={<PMProjectManager />} />
+            <Route path="project-tasks" element={<WKProjectTasks />} />
+            <Route path="skill-assessment" element={<WKSkillAssessmentTest />} />
+            <Route path="skill-assessment/quiz" element={<WKSkillAssessmentQuiz />} />
           </Route>
         </Routes>
       </div>
