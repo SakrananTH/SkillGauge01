@@ -162,7 +162,7 @@ const Login = () => {
             </div>
             <button className="login-submit" type="button" onClick={onLogin}>Login</button>
             <div className="login-footer-link">
-              Don't have an account? <Link to="/signup">Sign Up</Link>
+              ต้องการบัญชีใหม่? กรุณาติดต่อผู้ดูแลระบบเพื่อสร้างบัญชีให้คุณ
             </div>
           </div>
         </div>

@@ -1,0 +1,12 @@
+.dash-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 74px);
+    background: #f6f8fb;
+    font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.dash-topbar .phone {
+    margin-left: 2rem;
+}

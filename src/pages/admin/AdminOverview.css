@@ -1,0 +1,245 @@
+.admin-overview {
+  padding: 0.5rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.admin-overview__header {
+  margin-bottom: 2rem;
+}
+
+.admin-overview__header h2 {
+  font-size: 1.6rem;
+  color: #0f1d3a;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.admin-overview__header p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Stats Cards */
+.admin-overview__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-card__label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stat-card__value-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.stat-card__value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stat-card__unit {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.stat-card__trend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.trend--up {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trend--down {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Card Colors */
+.stat-card--blue { border-left: 4px solid #3b82f6; }
+.stat-card--orange { border-left: 4px solid #f97316; }
+.stat-card--green { border-left: 4px solid #22c55e; }
+.stat-card--purple { border-left: 4px solid #a855f7; }
+
+/* Grid Layout */
+.admin-overview__grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.5rem;
+}
+
+.overview-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+.overview-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.overview-section__header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.view-all-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+}
+
+.view-all-btn:hover {
+  text-decoration: underline;
+}
+
+/* Activity List */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: #f8fafc;
+}
+
+.type--register { background: #eff6ff; }
+.type--quiz { background: #f0fdf4; }
+.type--system { background: #f3f4f6; }
+.type--login { background: #faf5ff; }
+
+.activity-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.activity-user {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.activity-action {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.activity-time {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* Quick Actions */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-action-btn:hover {
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.quick-action-icon {
+  font-size: 1.8rem;
+}
+
+.quick-action-btn span {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+}
+
+@media (max-width: 900px) {
+  .admin-overview__grid {
+    grid-template-columns: 1fr;
+  }
+}

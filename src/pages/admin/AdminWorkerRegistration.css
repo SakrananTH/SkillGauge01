@@ -1,0 +1,244 @@
+.registration-page {
+  background: #f6f8fb;
+  min-height: calc(100vh - 74px);
+  padding: 2rem 0;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.registration-wrapper {
+  width: min(1100px, 92%);
+  margin: 0 auto;
+}
+
+.registration-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.registration-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #c5d7fe;
+  background: #edf3ff;
+  color: #1f4ebc;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.45rem 1.1rem;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.registration-nav button:first-child::before {
+  content: '<';
+  font-size: 1rem;
+}
+
+.registration-nav button:hover {
+  background: #dbe7ff;
+  color: #133a94;
+  transform: translateY(-1px);
+}
+
+.registration-header {
+  margin-bottom: 1.5rem;
+  text-align: left;
+  color: #1f2a3c;
+}
+
+.registration-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.registration-header p {
+  color: #5f6368;
+  font-size: 1rem;
+}
+
+.registration-feedback {
+  background: #e6f4ea;
+  border: 1px solid #c7e8cf;
+  color: #137333;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.registration-section {
+  background: #ffffff;
+  border: 1px solid #e2e6ec;
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+.section-header {
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  color: #1f2a3c;
+}
+
+.section-header p {
+  color: #5f6368;
+  font-size: 0.95rem;
+}
+
+.field-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.field-grid.two-columns {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.field-grid.one-column {
+  grid-template-columns: 1fr;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field label {
+  font-weight: 600;
+  color: #1f2a3c;
+  font-size: 0.95rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid #d4dae4;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.95rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+  background: #fbfcfe;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.12);
+  background: #ffffff;
+}
+
+.help-text {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.checkbox-group {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f6f8fb;
+  border: 1px solid #e2e6ec;
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+  color: #1f2a3c;
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.file-preview {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: #5f6368;
+}
+
+.file-preview li {
+  margin-top: 0.2rem;
+  list-style: disc;
+}
+
+.registration-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-bottom: 3rem;
+}
+
+.registration-actions button {
+  border-radius: 999px;
+  padding: 0.7rem 1.75rem;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.registration-actions button.primary {
+  background: #1f7aec;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(31, 122, 236, 0.35);
+}
+
+.registration-actions button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(31, 122, 236, 0.4);
+}
+
+.registration-actions button.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.registration-actions button.secondary {
+  background: #eef2f7;
+  color: #1f2a3c;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.registration-actions button.secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+}
+
+@media (max-width: 768px) {
+  .registration-wrapper {
+    width: min(96%, 640px);
+  }
+
+  .registration-section {
+    padding: 1.25rem;
+  }
+
+  .registration-header h1 {
+    font-size: 1.6rem;
+  }
+}

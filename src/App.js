@@ -8,8 +8,9 @@ import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
-import Signup from './pages/Signup';
-import SignupCredentials from './pages/SignupCredentials';
+import AdminSignup from './pages/admin/Signup';
+import AdminSignupCredentials from './pages/admin/SignupCredentials';
+import AdminWorkerRegistration from './pages/admin/AdminWorkerRegistration';
 import WKDashboard from './pages/WKDashboard';
 import PMProjectManager from './pages/PMProjectManager';
 import WKProjectTasks from './pages/WKProject_Tasks';
@@ -29,8 +30,9 @@ function App() {
             <Route path="portfolio" element={<Services />} />
             <Route path="contact" element={<Contact />} />
             <Route path="login" element={<Login />} />
-            <Route path="signup" element={<Signup />} />
-            <Route path="signup/credentials" element={<SignupCredentials />} />
+            <Route path="admin/signup" element={<AdminRoute><AdminSignup /></AdminRoute>} />
+            <Route path="admin/signup/credentials" element={<AdminRoute><AdminSignupCredentials /></AdminRoute>} />
+            <Route path="admin/worker-registration" element={<AdminRoute><AdminWorkerRegistration /></AdminRoute>} />
             <Route path="dashboard" element={<WKDashboard />} />
             <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="pm" element={<PMProjectManager />} />
