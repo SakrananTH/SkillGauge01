@@ -278,7 +278,7 @@ const AdminSignup = () => {
 
           {/* Row 4: Location Details */}
           <div className="form-field col-span-4">
-            <label>ตำบล/แขวง - อำเภอ/เขต</label>
+            <label>ตำบล/แขวง</label>
             <input
               type="text"
               name="addressDetails"
@@ -288,6 +288,20 @@ const AdminSignup = () => {
               className={errors.addressDetails ? 'error' : ''}
             />
             {errors.addressDetails && <span className="error-message">{errors.addressDetails}</span>}
+          </div>
+
+          <div className="form-field col-span-4">
+            <label>อําเภอ</label>
+            <input
+              type="text"
+              name="district"
+              value={formData.district}
+              onChange={handleChange}
+              placeholder="ระบุอําเภอ"
+              className={errors.district ? 'error' : ''}
+            />
+            
+            {errors.district && <span className="error-message">{errors.district}</span>}
           </div>
 
           <div className="form-field col-span-4">
