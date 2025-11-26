@@ -36,7 +36,7 @@ const AdminSignupCredentials = () => {
     if (!profileDraft) return null;
     const fullName = `${profileDraft.name || ''} ${profileDraft.surname || ''}`.trim();
     const roleMap = {
-      admin: 'ผู้ดูแลระบบ (Admin)',
+      admin: 'ผู้ดูแลระบบ (Adm)',
       pm: 'ผู้จัดการโครงการ (PM)',
       fm: 'ผู้จัดการภาคสนาม (FM)'
     };

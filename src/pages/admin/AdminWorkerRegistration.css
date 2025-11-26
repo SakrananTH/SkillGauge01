@@ -1,5 +1,5 @@
 .registration-page {
-  background: #f6f8fb;
+  background: linear-gradient(180deg, #f4f8ff 0%, #ffffff 45%, #f7fbff 100%);
   min-height: calc(100vh - 74px);
   padding: 2rem 0;
   font-family: 'Inter', 'Noto Sans Thai', sans-serif;
@@ -22,14 +22,15 @@
   align-items: center;
   gap: 0.45rem;
   border-radius: 999px;
-  border: 1px solid #c5d7fe;
-  background: #edf3ff;
-  color: #1f4ebc;
+  border: 1px solid #c5d7fe00;
+  background: #edf3ff00;
+  color: #446bc4;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
   padding: 0.45rem 1.1rem;
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
 }
 
 .registration-nav button:first-child::before {
@@ -70,6 +71,131 @@
   font-size: 0.95rem;
 }
 
+.registration-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.registration-content form {
+  flex: 1 1 0;
+}
+
+.registration-progress-card {
+  flex: 0 0 260px;
+  background: #ffffff;
+  border: 1px solid #e2e6ec;
+  border-radius: 16px;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 10px 30px rgba(30, 64, 175, 0);
+  position: sticky;
+  top: 2rem;
+  margin-left: auto;
+}
+
+.progress-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.progress-card-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2a3c;
+}
+
+.progress-card-header span {
+  font-weight: 700;
+  color: #1f7aec;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #edf4ff;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 1.1rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1f7aec 0%, #4dabf7 100%);
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+
+.progress-step-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.progress-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cbd5f5;
+  margin-top: 0.2rem;
+  transition: all 0.2s ease;
+}
+
+.progress-step.in-progress .step-dot {
+  background: #4dabf7;
+  box-shadow: 0 0 0 4px rgba(77, 171, 247, 0.2);
+}
+
+.progress-step.completed .step-dot {
+  background: #1f7aec;
+  box-shadow: 0 0 0 4px rgba(31, 122, 236, 0.25);
+}
+@media (max-width: 1024px) {
+  .registration-content {
+    flex-direction: column;
+  }
+
+  .registration-progress-card {
+    width: 100%;
+    position: static;
+  }
+}
+
+
+.step-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.step-label {
+  font-weight: 600;
+  color: #1f2a3c;
+}
+
+.step-status {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.progress-step.completed .step-status {
+  color: #1f7aec;
+}
+
 .registration-section {
   background: #ffffff;
   border: 1px solid #e2e6ec;
@@ -105,7 +231,7 @@
 }
 
 .field-grid.one-column {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .field {
@@ -129,6 +255,15 @@
   font-size: 0.95rem;
   font-family: 'Inter', 'Noto Sans Thai', sans-serif;
   background: #fbfcfe;
+}
+
+.trade-select-field {
+  max-width: 360px;
+  align-self: flex-start;
+}
+
+.trade-select-field select {
+  width: 50%;
 }
 
 .field textarea {
@@ -174,7 +309,7 @@
 }
 
 .file-preview {
-  margin: 0;
+  width: 100%;
   padding-left: 1.1rem;
   font-size: 0.85rem;
   color: #5f6368;
@@ -190,6 +325,36 @@
   gap: 1rem;
   justify-content: flex-end;
   margin-bottom: 3rem;
+}
+.field input[type="file"] {
+  padding: 0.4rem 0.75rem;
+  background: #f3f6ff;
+  border-style: dashed;
+  border-color: #c6d4fb;
+  border-width: 1px;
+  color: #1f2a3c;
+  cursor: pointer;
+}
+
+.field input[type="file"]:hover {
+  background: #e8efff;
+}
+
+.field input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 1.1rem;
+  border: none;
+  border-radius: 999px;
+  background: #1f7aec;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.field input[type="file"]::file-selector-button:hover {
+  background: #1565d8;
+  transform: translateY(-1px);
 }
 
 .registration-actions button {

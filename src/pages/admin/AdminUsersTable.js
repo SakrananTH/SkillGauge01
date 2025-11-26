@@ -46,10 +46,16 @@ const AdminUsersTable = () => {
   }, [workers, searchTerm, filterCategory]);
 
   const handleDelete = (id) => {
+    if (!id) {
+      console.warn('Cannot delete worker without id');
+      return;
+    }
+
     if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลพนักงานนี้?')) {
-      const updatedWorkers = workers.filter(worker => String(worker.id) !== String(id));
-      setWorkers(updatedWorkers);
+      const storedWorkers = JSON.parse(localStorage.getItem('admin_workers') || '[]');
+      const updatedWorkers = storedWorkers.filter(worker => String(worker.id) !== String(id));
       localStorage.setItem('admin_workers', JSON.stringify(updatedWorkers));
+      setWorkers(updatedWorkers);
     }
   };
 

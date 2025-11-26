@@ -163,9 +163,9 @@ const AdminSignup = () => {
               className={errors.role ? 'error' : ''}
             >
               <option value="">เลือกตำแหน่ง</option>
-              <option value="admin">ผู้ดูแลระบบ (Admin)</option>
               <option value="pm">ผู้จัดการโครงการ (PM)</option>
-              <option value="fm">ผู้จัดการภาคสนาม (FM)</option>
+              <option value="fm">หัวหน้าช่าง (FM)</option>
+              <option value="worker">ช่าง (WK)</option>
             </select>
             {errors.role && <span className="error-message">{errors.role}</span>}
           </div>
