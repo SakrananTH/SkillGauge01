@@ -89,8 +89,11 @@
   padding: 1.25rem 1.35rem;
   box-shadow: 0 10px 30px rgba(30, 64, 175, 0);
   position: sticky;
-  top: 2rem;
+  top: 1.5rem;
   margin-left: auto;
+  align-self: flex-start;
+  max-height: calc(100vh - 2.5rem);
+  overflow-y: auto;
 }
 
 .progress-card-header {
@@ -168,7 +171,8 @@
 
   .registration-progress-card {
     width: 100%;
-    position: static;
+    margin-left: 0;
+    top: 1rem;
   }
 }
 
@@ -252,10 +256,18 @@
 .field textarea {
   border: 1px solid #d4dae4;
   border-radius: 10px;
-  padding: 0.65rem 0.75rem;
+  padding: 0.5rem 0.7rem;
   font-size: 0.95rem;
   font-family: 'Inter', 'Noto Sans Thai', sans-serif;
   background: #fbfcfe;
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+}
+
+.field select {
+  width: fit-content;
+  padding-right: 2.5rem;
 }
 
 .trade-select-field {
@@ -269,6 +281,16 @@
 
 .field textarea {
   resize: vertical;
+  padding: 0.7rem 0.75rem;
+}
+
+.field textarea[data-field-id="addressOnId"],
+.field textarea[data-field-id="currentAddress"] {
+  width: 100%;
+}
+
+.field input[data-field-id="accountEmail"] {
+  width: 100%;
 }
 
 .field-stack {

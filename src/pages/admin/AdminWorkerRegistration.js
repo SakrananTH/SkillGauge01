@@ -23,25 +23,19 @@ const roleOptions = [
 const STEP_FLOW = [
   {
     key: 'personal',
-    title: '1) ข้อมูลส่วนตัวและตำแหน่งงาน',
-    label: 'ข้อมูลส่วนตัว/ตำแหน่ง',
-    description: 'กรอกข้อมูลประจำตัวและรายละเอียดตำแหน่งงานของพนักงานในหน้าเดียว'
-  },
-  {
-    key: 'address',
-    title: '2) ข้อมูลที่อยู่และบัตร',
-    label: 'ข้อมูลที่อยู่',
-    description: 'รายละเอียดที่อยู่ จังหวัด อำเภอ ตำบล และวันออก/หมดอายุบัตร'
+    title: '1) ข้อมูลส่วนตัว ตำแหน่งงาน และที่อยู่',
+    label: 'ข้อมูลส่วนตัว/ตำแหน่ง/ที่อยู่',
+    description: 'กรอกข้อมูลประจำตัว รายละเอียดตำแหน่ง ที่อยู่ และข้อมูลบัตรในหน้าเดียว'
   },
   {
     key: 'credentials',
-    title: '3) สร้างบัญชีเข้าสู่ระบบ',
+    title: '2) สร้างบัญชีเข้าสู่ระบบ',
     label: 'สร้างบัญชีเข้าสู่ระบบ',
     description: 'สร้างอีเมลและรหัสผ่านสำหรับเข้าสู่ระบบ'
   },
   {
     key: 'review',
-    title: '4) ตรวจสอบและยืนยันข้อมูล',
+    title: '3) ตรวจสอบและยืนยันข้อมูล',
     label: 'ตรวจสอบข้อมูล',
     description: 'ตรวจสอบความถูกต้องของข้อมูลทั้งหมดก่อนบันทึก'
   }
@@ -59,9 +53,7 @@ const STEP_FIELD_PATHS = {
     ['personal', 'birthDate'],
     ['employment', 'role'],
     ['employment', 'tradeType'],
-    ['employment', 'experienceYears']
-  ],
-  address: [
+    ['employment', 'experienceYears'],
     ['address', 'addressOnId'],
     ['address', 'province'],
     ['address', 'district'],
@@ -230,7 +222,7 @@ const AdminWorkerRegistration = () => {
       {
         key: 'personal',
         title: 'ข้อมูลส่วนตัว',
-        stepIndex: 0,
+        stepIndex: STEP_INDEX_BY_KEY.personal,
         items: [
           { label: 'ชื่อ-นามสกุล', value: form.personal.fullName?.trim() || 'ไม่ระบุ' },
           { label: 'เลขบัตรประชาชน', value: form.personal.nationalId?.trim() || 'ไม่ระบุ' },
@@ -241,7 +233,7 @@ const AdminWorkerRegistration = () => {
       {
         key: 'employment',
         title: 'ข้อมูลตำแหน่งงาน',
-        stepIndex: 0,
+        stepIndex: STEP_INDEX_BY_KEY.personal,
         items: [
           { label: 'ตำแหน่ง', value: selectedRoleLabel },
           { label: 'ประเภทช่าง', value: selectedTradeLabel },
@@ -251,7 +243,7 @@ const AdminWorkerRegistration = () => {
       {
         key: 'address',
         title: 'ข้อมูลที่อยู่',
-        stepIndex: 1,
+        stepIndex: STEP_INDEX_BY_KEY.personal,
         items: [
           { label: 'ที่อยู่ตามบัตรประชาชน', value: form.address.addressOnId?.trim() || 'ไม่ระบุ' },
           { label: 'จังหวัด', value: form.address.province?.trim() || 'ไม่ระบุ' },
@@ -264,7 +256,7 @@ const AdminWorkerRegistration = () => {
       {
         key: 'identity',
         title: 'ข้อมูลบัตรประชาชน',
-        stepIndex: 1,
+        stepIndex: STEP_INDEX_BY_KEY.personal,
         items: [
           { label: 'วันออกบัตร', value: formatDate(form.identity.issueDate) },
           { label: 'วันหมดอายุบัตร', value: formatDate(form.identity.expiryDate) }
@@ -273,7 +265,7 @@ const AdminWorkerRegistration = () => {
       {
         key: 'account',
         title: 'บัญชีเข้าสู่ระบบ',
-        stepIndex: 2,
+        stepIndex: STEP_INDEX_BY_KEY.credentials,
         items: [
           { label: 'อีเมลเข้าสู่ระบบ', value: form.credentials.email.trim() || 'ไม่ระบุ' },
           {
@@ -646,88 +638,96 @@ const AdminWorkerRegistration = () => {
                 </div>
               </div>
             </section>
-          </div>
-        );
-      case 'address':
-        return (
-          <div className="field-grid one-column">
-            <div className="field">
-              <label>ที่อยู่ตามบัตรประชาชน</label>
-              <textarea
-                value={form.address.addressOnId}
-                onChange={handleInputChange('address', 'addressOnId')}
-                rows={3}
-                placeholder="บ้านเลขที่ หมู่ ซอย ถนน"
-              />
-            </div>
 
-            <div className="field-grid two-columns">
-              <div className="field">
-                <label>จังหวัด</label>
-                <input
-                  type="text"
-                  value={form.address.province}
-                  onChange={handleInputChange('address', 'province')}
-                  placeholder="จังหวัด"
-                />
+            <section className="field-section">
+              <h3 className="field-section-title">ข้อมูลที่อยู่</h3>
+              <div className="field-grid one-column">
+                <div className="field">
+                  <label>ที่อยู่ตามบัตรประชาชน</label>
+                  <textarea
+                    data-field-id="addressOnId"
+                    value={form.address.addressOnId}
+                    onChange={handleInputChange('address', 'addressOnId')}
+                    rows={3}
+                    placeholder="บ้านเลขที่ หมู่ ซอย ถนน"
+                  />
+                </div>
               </div>
-              <div className="field">
-                <label>อำเภอ</label>
-                <input
-                  type="text"
-                  value={form.address.district}
-                  onChange={handleInputChange('address', 'district')}
-                  placeholder="อำเภอ"
-                />
-              </div>
-              <div className="field">
-                <label>ตำบล</label>
-                <input
-                  type="text"
-                  value={form.address.subdistrict}
-                  onChange={handleInputChange('address', 'subdistrict')}
-                  placeholder="ตำบล"
-                />
-              </div>
-              <div className="field">
-                <label>รหัสไปรษณีย์</label>
-                <input
-                  type="text"
-                  value={form.address.postalCode}
-                  onChange={handleInputChange('address', 'postalCode')}
-                  placeholder="xxxxx"
-                />
-              </div>
-            </div>
 
-            <div className="field">
-              <label>ที่อยู่ปัจจุบัน</label>
-              <textarea
-                value={form.address.currentAddress}
-                onChange={handleInputChange('address', 'currentAddress')}
-                rows={3}
-                placeholder="รายละเอียดที่อยู่ปัจจุบัน"
-              />
-            </div>
+              <div className="field-grid two-columns">
+                <div className="field">
+                  <label>จังหวัด</label>
+                  <input
+                    type="text"
+                    value={form.address.province}
+                    onChange={handleInputChange('address', 'province')}
+                    placeholder="จังหวัด"
+                  />
+                </div>
+                <div className="field">
+                  <label>อำเภอ</label>
+                  <input
+                    type="text"
+                    value={form.address.district}
+                    onChange={handleInputChange('address', 'district')}
+                    placeholder="อำเภอ"
+                  />
+                </div>
+                <div className="field">
+                  <label>ตำบล</label>
+                  <input
+                    type="text"
+                    value={form.address.subdistrict}
+                    onChange={handleInputChange('address', 'subdistrict')}
+                    placeholder="ตำบล"
+                  />
+                </div>
+                <div className="field">
+                  <label>รหัสไปรษณีย์</label>
+                  <input
+                    type="text"
+                    value={form.address.postalCode}
+                    onChange={handleInputChange('address', 'postalCode')}
+                    placeholder="xxxxx"
+                  />
+                </div>
+              </div>
 
-            <div className="field-grid two-columns">
-              <div className="field">
-                <label>วันออกบัตร</label>
-                <input
-                  type="date"
-                  value={form.identity.issueDate}
-                  onChange={handleInputChange('identity', 'issueDate')}
-                />
+              <div className="field-grid one-column">
+                <div className="field">
+                  <label>ที่อยู่ปัจจุบัน</label>
+                  <textarea
+                    data-field-id="currentAddress"
+                    value={form.address.currentAddress}
+                    onChange={handleInputChange('address', 'currentAddress')}
+                    rows={3}
+                    placeholder="รายละเอียดที่อยู่ปัจจุบัน"
+                  />
+                </div>
               </div>
-              <div className="field">
-                <label>วันหมดอายุบัตร</label>
-                <input
-                  type="date"
-                  value={form.identity.expiryDate}
-                  onChange={handleInputChange('identity', 'expiryDate')}
-                />
+            </section>
+
+            <section className="field-section">
+              <h3 className="field-section-title">ข้อมูลบัตรประชาชน</h3>
+              <div className="field-grid two-columns">
+                <div className="field">
+                  <label>วันออกบัตร</label>
+                  <input
+                    type="date"
+                    value={form.identity.issueDate}
+                    onChange={handleInputChange('identity', 'issueDate')}
+                  />
+                </div>
+                <div className="field">
+                  <label>วันหมดอายุบัตร</label>
+                  <input
+                    type="date"
+                    value={form.identity.expiryDate}
+                    onChange={handleInputChange('identity', 'expiryDate')}
+                  />
+                </div>
               </div>
-            </div>
+            </section>
           </div>
         );
       case 'credentials':
@@ -746,6 +746,7 @@ const AdminWorkerRegistration = () => {
                 <div className="field">
                   <label>อีเมลสำหรับเข้าสู่ระบบ</label>
                   <input
+                    data-field-id="accountEmail"
                     type="email"
                     value={form.credentials.email}
                     onChange={handleInputChange('credentials', 'email')}

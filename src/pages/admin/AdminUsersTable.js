@@ -90,20 +90,6 @@ const AdminUsersTable = () => {
             เปิดแบบฟอร์มลงทะเบียน
           </button>
         </article>
-
-        <article className="admin-users-card">
-          <h3>สร้างบัญชีเข้าสู่ระบบ</h3>
-          <p>
-            สมัครบัญชีสำหรับใช้งานแพลตฟอร์ม Skill Gauge กรอกเพียงข้อมูลติดต่อและกำหนดรหัสผ่านเพื่อเปิดสิทธิ์ให้พนักงาน
-          </p>
-          <button
-            type="button"
-            className="admin-users-card__button admin-users-card__button--secondary"
-            onClick={() => navigate('/admin/signup')}
-          >
-            สร้างบัญชีเข้าสู่ระบบ
-          </button>
-        </article>
       </div>
 
       <section className="admin-workers-section">
