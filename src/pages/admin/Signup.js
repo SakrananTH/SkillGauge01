@@ -34,7 +34,8 @@ const AdminSignup = () => {
     birthDate: '',
     province: '',
     category: '',
-    PostalCode: ''
+    PostalCode: '',
+    district: ''
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +77,8 @@ const AdminSignup = () => {
     }
     
     if (!formData.address.trim()) newErrors.address = 'กรุณากรอกที่อยู่';
-    if (!formData.addressDetails.trim()) newErrors.addressDetails = 'กรุณากรอกอำเภอ/เขต';
+    if (!formData.district.trim()) newErrors.district = 'กรุณากรอกอำเภอ/เขต';
+    if (!formData.addressDetails.trim()) newErrors.addressDetails = 'กรุณากรอกตำบล/แขวง';
     if (!formData.province.trim()) newErrors.province = 'กรุณากรอกจังหวัด';
     if (!formData.category) newErrors.category = 'กรุณาเลือกหมวดหมู่';
     if (!formData.PostalCode || !formData.PostalCode.trim()) newErrors.PostalCode = 'กรุณากรอกรหัสไปรษณีย์';
@@ -110,6 +112,7 @@ const AdminSignup = () => {
         address: formData.address,
         addressDetails: formData.addressDetails,
         province: formData.province,
+        district: formData.district,
         category: formData.category,
         birthDate: formData.birthDate,
         PostalCode: formData.PostalCode || ''
@@ -154,65 +157,90 @@ const AdminSignup = () => {
         <form onSubmit={onRegister} className="admin-signup-form">
           
           {/* Row 1: Role, Prefix, Full Name */}
-          <div className="form-field col-span-3">
-            <label>ตำแหน่ง (Role)</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className={errors.role ? 'error' : ''}
-            >
-              <option value="">เลือกตำแหน่ง</option>
-              <option value="pm">ผู้จัดการโครงการ (PM)</option>
-              <option value="fm">หัวหน้าช่าง (FM)</option>
-              <option value="worker">ช่าง (WK)</option>
-            </select>
-            {errors.role && <span className="error-message">{errors.role}</span>}
+          <div className="col-span-12 role-category-row">
+            <div className="form-field role-field">
+              <label>ตำแหน่ง (Role)</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className={errors.role ? 'error' : ''}
+              >
+                <option value="">เลือกตำแหน่ง</option>
+                <option value="pm">ผู้จัดการโครงการ (PM)</option>
+                <option value="fm">หัวหน้าช่าง (FM)</option>
+                <option value="worker">ช่าง (WK)</option>
+              </select>
+              {errors.role && <span className="error-message">{errors.role}</span>}
+            </div>
+            <div className="form-field category-field">
+              <label>หมวดหมู่ความเชี่ยวชาญ</label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className={errors.category ? 'error' : ''}
+              >
+                <option value="">เลือกหมวดหมู่</option>
+                <option value="othe0">1.ไม่มี</option>
+                <option value="othe1">2.ช่างไฟฟ้า</option>
+                <option value="othe2">3.ช่างประปา</option>
+                <option value="othe3">4.ช่างก่ออิฐฉาบปูน</option>
+                <option value="othe4">5.ช่างประตู-หน้าต่าง</option>
+                <option value="othe5">6.ช่างฝ้าเพดาน</option>
+                <option value="othe6">7.ช่างหลังคา</option>
+                <option value="othe7">8.ช่างกระเบื้อง</option>
+                <option value="othe">9.ช่างโครงสร้าง</option>
+              </select>
+              {errors.category && <span className="error-message">{errors.category}</span>}
+            </div>
           </div>
 
-          <div className="form-field col-span-2">
-            <label>คำนำหน้า</label>
-            <select
-              name="skill"
-              value={formData.skill}
-              onChange={handleChange}
-              className={errors.skill ? 'error' : ''}
-            >
-              <option value="">เลือก</option>
-              <option value="นาย">นาย</option>
-              <option value="นาง">นาง</option>
-              <option value="นางสาว">นางสาว</option>
-            </select>
-            {errors.skill && <span className="error-message">{errors.skill}</span>}
-          </div>
+          <div className="col-span-12 identity-row">
+            <div className="form-field prefix-field">
+              <label>คำนำหน้า</label>
+              <select
+                name="skill"
+                value={formData.skill}
+                onChange={handleChange}
+                className={errors.skill ? 'error' : ''}
+              >
+                <option value="">เลือก</option>
+                <option value="นาย">นาย</option>
+                <option value="นาง">นาง</option>
+                <option value="นางสาว">นางสาว</option>
+              </select>
+              {errors.skill && <span className="error-message">{errors.skill}</span>}
+            </div>
 
-          <div className="form-field col-span-4">
-            <label>ชื่อ-นามสกุล (Full Name)</label>
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              placeholder="กรอกชื่อและนามสกุล"
-              className={errors.fullName ? 'error' : ''}
-            />
-            {errors.fullName && <span className="error-message">{errors.fullName}</span>}
-          </div>
+            <div className="form-field name-field">
+              <label>ชื่อ-นามสกุล</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder="กรอกชื่อและนามสกุล"
+                className={errors.fullName ? 'error' : ''}
+              />
+              {errors.fullName && <span className="error-message">{errors.fullName}</span>}
+            </div>
 
-          <div className="form-field col-span-3">
-            <label>วันเดือนปีเกิด</label>
-            <input
-              type="date"
-              name="birthDate"
-              value={formData.birthDate}
-              onChange={handleChange}
-              className={errors.birthDate ? 'error' : ''}
-            />
-            {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
+            <div className="form-field birthdate-field">
+              <label>วันเดือนปีเกิด</label>
+              <input
+                type="date"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleChange}
+                className={errors.birthDate ? 'error' : ''}
+              />
+              {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
+            </div>
           </div>
 
           {/* Row 2: ID Card, Phone, Category */}
-          <div className="form-field col-span-4">
+          <div className="form-field col-span-6 id-card-field">
             <label>เลขบัตรประชาชน</label>
             <input
               type="text"
@@ -226,7 +254,7 @@ const AdminSignup = () => {
             {errors.idCard && <span className="error-message">{errors.idCard}</span>}
           </div>
 
-          <div className="form-field col-span-4">
+          <div className="form-field col-span-12 phone-field">
             <label>เบอร์โทรศัพท์</label>
             <input
               type="text"
@@ -239,31 +267,8 @@ const AdminSignup = () => {
             />
             {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
           </div>
-
-          <div className="form-field col-span-4">
-            <label>หมวดหมู่ความเชี่ยวชาญ</label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className={errors.category ? 'error' : ''}
-            >
-              <option value="">เลือกหมวดหมู่</option>
-              <option value="othe0">1.ไม่มี</option>
-              <option value="othe1">2.ช่างไฟฟ้า</option>
-              <option value="othe2">3.ช่างประปา</option>
-              <option value="othe3">4.ช่างก่ออิฐฉาบปูน</option>
-              <option value="othe4">5.ช่างประตู-หน้าต่าง</option>
-              <option value="othe5">6.ช่างฝ้าเพดาน</option>
-              <option value="othe6">7.ช่างหลังคา</option>
-              <option value="othe7">8.ช่างกระเบื้อง</option>
-              <option value="othe">9.ช่างโครงสร้าง</option>
-            </select>
-            {errors.category && <span className="error-message">{errors.category}</span>}
-          </div>
-
           {/* Row 3: Address */}
-          <div className="form-field col-span-12">
+          <div className="form-field col-span-12 address-field left-align">
             <label>ที่อยู่ปัจจุบัน</label>
             <textarea
               name="address"
@@ -276,35 +281,7 @@ const AdminSignup = () => {
             {errors.address && <span className="error-message">{errors.address}</span>}
           </div>
 
-          {/* Row 4: Location Details */}
-          <div className="form-field col-span-4">
-            <label>ตำบล/แขวง</label>
-            <input
-              type="text"
-              name="addressDetails"
-              value={formData.addressDetails}
-              onChange={handleChange}
-              placeholder="ระบุตำบลและอำเภอ"
-              className={errors.addressDetails ? 'error' : ''}
-            />
-            {errors.addressDetails && <span className="error-message">{errors.addressDetails}</span>}
-          </div>
-
-          <div className="form-field col-span-4">
-            <label>อําเภอ</label>
-            <input
-              type="text"
-              name="district"
-              value={formData.district}
-              onChange={handleChange}
-              placeholder="ระบุอําเภอ"
-              className={errors.district ? 'error' : ''}
-            />
-            
-            {errors.district && <span className="error-message">{errors.district}</span>}
-          </div>
-
-          <div className="form-field col-span-4">
+          <div className="form-field col-span-3">
             <label>จังหวัด</label>
             <input
               type="text"
@@ -316,8 +293,34 @@ const AdminSignup = () => {
             />
             {errors.province && <span className="error-message">{errors.province}</span>}
           </div>
+          
+          <div className="form-field col-span-3">
+            <label>อําเภอ</label>
+            <input
+              type="text"
+              name="district"
+              value={formData.district}
+              onChange={handleChange}
+              placeholder="ระบุอําเภอ"
+              className={errors.district ? 'error' : ''}
+            />
+            {errors.district && <span className="error-message">{errors.district}</span>}
+          </div>
 
-          <div className="form-field col-span-4">
+          {/* Row 4: Location Details */}
+          <div className="form-field col-span-3">
+            <label>ตำบล/แขวง</label>
+            <input
+              type="text"
+              name="addressDetails"
+              value={formData.addressDetails}
+              onChange={handleChange}
+              placeholder="ระบุตำบลและอำเภอ"
+              className={errors.addressDetails ? 'error' : ''}
+            />
+            {errors.addressDetails && <span className="error-message">{errors.addressDetails}</span>}
+          </div>
+          <div className="form-field col-span-3">
             <label>รหัสไปรษณีย์</label>
             <input
               type="text"

@@ -94,6 +94,114 @@
   min-height: 100px;
 }
 
+.name-inline-field .name-inline-inputs {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.name-inline-field .inline-control {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.name-inline-field .inline-control.prefix-control {
+  flex: 0 0 160px;
+}
+
+.name-inline-field .inline-control select {
+  min-width: 150px;
+}
+
+.name-inline-field .name-input input {
+  width: 100%;
+}
+
+.name-inline-field .error-message {
+  margin-top: 0.25rem;
+}
+
+.id-card-field {
+  max-width: 240px;
+  justify-self: start;
+}
+
+.id-card-field input {
+  width: 100%;
+}
+
+.role-category-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.role-field,
+.category-field {
+  max-width: 260px;
+  flex: 0 0 auto;
+}
+
+.role-field select,
+.category-field select {
+  width: 100%;
+}
+
+.phone-field {
+  max-width: 240px;
+  justify-self: start;
+}
+
+.phone-field input {
+  width: 100%;
+}
+
+.address-field {
+  max-width: 480px;
+}
+
+.address-field.left-align {
+  justify-self: start;
+}
+
+.name-field input {
+  width: 100%;
+  max-width: 320px;
+}
+
+.identity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: flex-end;
+}
+
+.identity-row .prefix-field {
+  flex: 0 0 140px;
+}
+
+.identity-row .prefix-field select {
+  width: 100%;
+}
+
+.identity-row .name-field {
+  flex: 1 1 260px;
+  max-width: 320px;
+}
+
+.identity-row .birthdate-field {
+  flex: 0 0 200px;
+}
+
+.identity-row .birthdate-field input {
+  width: 100%;
+}
+
+.address-field textarea {
+  min-height: 80px;
+}
+
 .form-field .error-message {
   color: #e53e3e;
   font-size: 0.85rem;
@@ -126,27 +234,30 @@
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-  color: white;
-  padding: 1rem 2.5rem;
-  border-radius: 12px;
+  background: #2b6cb0;
+  color: #ffffff;
+  padding: 0.95rem 2.25rem;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 1.1rem;
-  border: none;
+  font-size: 1.05rem;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+  border: 1px solid #1e3a8a;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 14px rgba(66, 153, 225, 0.3);
+  transition: background 0.2s ease, color 0.2s ease;
+  box-shadow: none;
 }
 
 .btn-submit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+  background: #244a8a;
+}
+
+.btn-submit:active {
+  background: #1d3b6c;
 }
 
 .btn-submit:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* Date Grid specific */

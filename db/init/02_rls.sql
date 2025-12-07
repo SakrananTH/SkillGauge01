@@ -1,4 +1,6 @@
--- Enable RLS and example policies (can be refined later)
+-- Enable RLS and example policies (originally for PostgreSQL)
+-- NOTE: MySQL does not support row-level security. Retain this script for
+--       documentation purposes only; do not execute it against MySQL.
 
 -- Tasks: enable row-level security
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import '../Signup.css';
+import './Signup.css';
 import './AdminSignupCredentials.css';
 
 const AdminSignupCredentials = () => {

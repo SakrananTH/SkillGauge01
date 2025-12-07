@@ -227,11 +227,12 @@
 }
 
 .field-grid.two-columns {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .field-grid.one-column {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .field {
@@ -268,6 +269,193 @@
 
 .field textarea {
   resize: vertical;
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.field-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2a3c;
+  margin-bottom: 0.75rem;
+}
+
+.field input.error,
+.field select.error,
+.field textarea.error {
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 1px rgba(229, 62, 62, 0.1);
+}
+
+.error-message {
+  font-size: 0.82rem;
+  color: #e53e3e;
+}
+
+.account-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.account-note {
+  background: #ffffff;
+  border: 1px solid #e2e6ec;
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  max-width: 640px;
+  margin: 0 auto;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.account-note h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2a3c;
+}
+
+.account-note p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.account-form {
+  background: #ffffff;
+  border: 1px solid #e2e6ec;
+  border-radius: 14px;
+  padding: 1.35rem 1.4rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  max-width: 640px;
+  margin: 0 auto;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.review-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.review-intro {
+  background: #f8fbff;
+  border: 1px solid #dee5f5;
+  border-radius: 14px;
+  padding: 1.25rem 1.35rem;
+  max-width: 960px;
+  margin: 0 auto;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.review-intro h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2a3c;
+}
+
+.review-intro p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.review-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.review-card {
+  background: #ffffff;
+  border: 1px solid #e2e6ec;
+  border-radius: 14px;
+  padding: 1.2rem 1.35rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.review-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.review-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2a3c;
+}
+
+.review-card-edit {
+  border: 1px solid #1f7aec;
+  background: #ffffff;
+  color: #1f7aec;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.review-card-edit:hover {
+  background: #1f7aec;
+  color: #ffffff;
+}
+
+.review-list {
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.review-list-row {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.review-list-row dt {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4d5875;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.review-list-row dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #182235;
+  font-weight: 500;
+  line-height: 1.6;
 }
 
 .field input:focus,
@@ -308,6 +496,37 @@
   height: 18px;
 }
 
+.password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input input {
+  width: 100%;
+  padding-right: 3rem;
+}
+
+.toggle-visibility {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.toggle-visibility:hover {
+  color: #1f7aec;
+}
+
+.credentials-grid .field {
+  max-width: 520px;
+}
+
 .file-preview {
   width: 100%;
   padding-left: 1.1rem;
@@ -325,6 +544,12 @@
   gap: 1rem;
   justify-content: flex-end;
   margin-bottom: 3rem;
+}
+
+.wizard-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 .field input[type="file"] {
   padding: 0.4rem 0.75rem;
@@ -358,24 +583,23 @@
 }
 
 .registration-actions button {
-  border-radius: 999px;
-  padding: 0.7rem 1.75rem;
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
   font-size: 0.95rem;
   border: none;
   cursor: pointer;
   font-weight: 600;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
 
 .registration-actions button.primary {
   background: #1f7aec;
   color: #ffffff;
-  box-shadow: 0 6px 16px rgba(31, 122, 236, 0.35);
 }
 
 .registration-actions button.primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(31, 122, 236, 0.4);
+  background: #1565d8;
 }
 
 .registration-actions button.primary:disabled {
@@ -384,14 +608,12 @@
 }
 
 .registration-actions button.secondary {
-  background: #eef2f7;
+  background: #f2f4f7;
   color: #1f2a3c;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
 .registration-actions button.secondary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  background: #e1e5eb;
 }
 
 @media (max-width: 768px) {
@@ -405,5 +627,40 @@
 
   .registration-header h1 {
     font-size: 1.6rem;
+  }
+
+  .field-grid.two-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .credentials-grid .field {
+    max-width: 100%;
+  }
+
+  .field-section-title {
+    font-size: 1rem;
+  }
+
+  .account-note {
+    padding: 1.1rem 1.2rem;
+  }
+
+  .account-form {
+    padding: 1.1rem 1.2rem;
+  }
+
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .review-list-row {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    padding: 0.6rem 0.75rem;
   }
 }
