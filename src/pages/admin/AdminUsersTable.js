@@ -1,40 +1,63 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import '../Dashboard.css';
 import './AdminUsersTable.css';
+import { apiRequest } from '../../utils/api';
+
+const workerErrorMessages = {
+  workers_table_missing_id: 'ตาราง workers ไม่มีคอลัมน์ id กรุณาตรวจสอบฐานข้อมูล',
+  worker_accounts_table_missing_columns: 'ตารางบัญชีผู้ใช้ยังไม่พร้อมใช้งาน',
+  worker_columns_unavailable: 'ไม่สามารถบันทึกข้อมูลพนักงานได้ กรุณาตรวจสอบโครงสร้างตาราง',
+  duplicate_email: 'อีเมลนี้ถูกใช้งานแล้ว',
+  duplicate_national_id: 'เลขบัตรประชาชนนี้ถูกใช้งานแล้ว',
+  invalid_national_id_length: 'เลขบัตรประชาชนต้องมี 13 หลัก'
+};
 
 const AdminUsersTable = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [workers, setWorkers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const refreshWorkersFlag = Boolean(location.state?.refreshWorkers);
 
-  useEffect(() => {
-    const storedWorkers = localStorage.getItem('admin_workers');
-    if (storedWorkers) {
-      try {
-        let parsedWorkers = JSON.parse(storedWorkers);
-        // Ensure all workers have a unique ID to prevent delete issues
-        let hasChanges = false;
-        parsedWorkers = parsedWorkers.map((w, index) => {
-          if (!w.id) {
-            hasChanges = true;
-            return { ...w, id: `fixed-${Date.now()}-${index}` };
-          }
-          return w;
-        });
-
-        setWorkers(parsedWorkers);
-        
-        if (hasChanges) {
-          localStorage.setItem('admin_workers', JSON.stringify(parsedWorkers));
-        }
-      } catch (e) {
-        console.error('Failed to parse workers', e);
-        setWorkers([]);
-      }
+  const loadWorkers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await apiRequest('/api/admin/workers');
+      const items = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data)
+          ? data
+          : [];
+      setWorkers(items);
+    } catch (err) {
+      console.error('Failed to load workers', err);
+      const messageKey = err?.data?.message || err?.message;
+      setError(workerErrorMessages[messageKey] || err.message || 'ไม่สามารถโหลดข้อมูลพนักงานได้');
+      setWorkers([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadWorkers();
+  }, [loadWorkers]);
+
+  useEffect(() => {
+    if (!refreshWorkersFlag) return;
+    loadWorkers();
+    if (location.state) {
+      const { refreshWorkers, ...rest } = location.state;
+      navigate(location.pathname, { replace: true, state: Object.keys(rest).length ? rest : undefined });
+    } else {
+      navigate(location.pathname, { replace: true });
+    }
+  }, [refreshWorkersFlag, loadWorkers, navigate, location.pathname, location.state]);
 
   const filteredWorkers = useMemo(() => {
     return workers.filter(worker => {
@@ -45,26 +68,57 @@ const AdminUsersTable = () => {
     });
   }, [workers, searchTerm, filterCategory]);
 
-  const handleDelete = (id) => {
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(searchTerm.trim()) || filterCategory !== 'all';
+  }, [searchTerm, filterCategory]);
+
+  const handleDelete = async (id) => {
     if (!id) {
       console.warn('Cannot delete worker without id');
       return;
     }
 
-    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลพนักงานนี้?')) {
-      const storedWorkers = JSON.parse(localStorage.getItem('admin_workers') || '[]');
-      const updatedWorkers = storedWorkers.filter(worker => String(worker.id) !== String(id));
-      localStorage.setItem('admin_workers', JSON.stringify(updatedWorkers));
-      setWorkers(updatedWorkers);
+    if (!window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลพนักงานนี้?')) {
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/admin/workers/${id}`, { method: 'DELETE' });
+      await loadWorkers();
+    } catch (err) {
+      console.error('Failed to delete worker', err);
+      setError(err.message || 'ไม่สามารถลบข้อมูลพนักงานได้');
+    }
+  };
+
+  const openWorkerForm = async (worker, viewOnly = false) => {
+    if (!worker?.id) {
+      console.warn('Worker data is incomplete');
+      return;
+    }
+
+    try {
+      const payload = worker.fullData
+        ? worker
+        : await apiRequest(`/api/admin/workers/${worker.id}`);
+      navigate('/admin/worker-registration', {
+        state: {
+          editWorker: payload,
+          viewOnly
+        }
+      });
+    } catch (err) {
+      console.error('Failed to load worker detail', err);
+      setError(err.message || 'ไม่สามารถเปิดรายละเอียดพนักงานได้');
     }
   };
 
   const handleEdit = (worker) => {
-    navigate('/admin/worker-registration', { state: { editWorker: worker } });
+    openWorkerForm(worker, false);
   };
 
   const handleView = (worker) => {
-    navigate('/admin/worker-registration', { state: { editWorker: worker, viewOnly: true } });
+    openWorkerForm(worker, true);
   };
 
   return (
@@ -127,8 +181,14 @@ const AdminUsersTable = () => {
             <div className="col col-actions">จัดการ</div>
           </div>
           <div className="admin-workers-table__body">
-            {filteredWorkers.length === 0 ? (
-              <div className="empty-state">ไม่พบข้อมูลพนักงานตามเงื่อนไขที่กำหนด</div>
+            {loading ? (
+              <div className="empty-state">กำลังโหลดข้อมูล...</div>
+            ) : error ? (
+              <div className="empty-state">{error}</div>
+            ) : filteredWorkers.length === 0 ? (
+              <div className="empty-state">
+                {hasActiveFilters ? 'ไม่มีข้อมูลที่ตรงกับการค้นหา/ตัวกรอง' : 'ยังไม่มีข้อมูลพนักงานในระบบ' }
+              </div>
             ) : (
               filteredWorkers.map(worker => (
                 <div key={worker.id} className="admin-workers-table__row">
@@ -140,9 +200,9 @@ const AdminUsersTable = () => {
                   <div className="col col-level">{worker.level}</div>
                   <div className="col col-province">{worker.province}</div>
                   <div className="col col-actions">
-                    <button 
-                      type="button" 
-                      className="action-btn action-btn--view" 
+                    <button
+                      type="button"
+                      className="action-btn action-btn--view"
                       title="ดูรายละเอียด"
                       onClick={() => handleView(worker)}
                     >
@@ -151,9 +211,9 @@ const AdminUsersTable = () => {
                         <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
                       </svg>
                     </button>
-                    <button 
-                      type="button" 
-                      className="action-btn action-btn--edit" 
+                    <button
+                      type="button"
+                      className="action-btn action-btn--edit"
                       title="แก้ไข"
                       onClick={() => handleEdit(worker)}
                     >
@@ -161,9 +221,9 @@ const AdminUsersTable = () => {
                         <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
                       </svg>
                     </button>
-                    <button 
-                      type="button" 
-                      className="action-btn action-btn--delete" 
+                    <button
+                      type="button"
+                      className="action-btn action-btn--delete"
                       title="ลบ"
                       onClick={() => handleDelete(worker.id)}
                     >

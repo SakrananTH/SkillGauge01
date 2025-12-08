@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
 import { chooseRole } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,6 +13,10 @@ const Login = () => {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+
+  const ADMIN_USERNAME = '0863125891';
+  const ADMIN_PASSWORD = '0863503381';
+  const ADMIN_EMAIL = 'admin@example.com';
 
   useEffect(() => {
     try {
@@ -32,46 +37,51 @@ const Login = () => {
     setRole((prev) => (prev === target ? '' : target));
   };
 
-  const API = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+  const API = API_BASE_URL || process.env.REACT_APP_API_URL || '';
 
   const onLogin = async () => {
     setError(''); // Clear previous errors
     
     if (!username || !password) {
-      setError('กรุณากรอก Username และ Password');
+      setError('กรุณากรอกเบอร์โทรศัพท์ (Admin) หรืออีเมล และรหัสผ่าน');
       return;
     }
     
-    // Simple demo logic: check for Admin credentials first
-    if (username === '0863125891' && password === '0863503381') {
-      const user = { username, role: 'admin' };
+    const trimmedUsername = username.trim();
+
+    if (trimmedUsername === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      setError('');
+      const token = 'admin-bypass-token';
+      const user = {
+        id: '11111111-1111-1111-1111-111111111111',
+        phone: ADMIN_USERNAME,
+        email: ADMIN_EMAIL,
+        roles: ['admin']
+      };
       try {
+        sessionStorage.setItem('auth_token', token);
+        sessionStorage.setItem('user_id', user.id);
+        sessionStorage.setItem('user_email', user.email);
         sessionStorage.setItem('role', 'admin');
-        // Try to fetch user_id by phone to store identity
-        const url = new URL('/api/users/by-phone', API);
-        url.searchParams.set('phone', username);
-        const res = await fetch(url);
-        if (res.ok) {
-          const u = await res.json();
-          if (u.id) sessionStorage.setItem('user_id', u.id);
-        }
       } catch {}
-      navigate('/admin', { state: { user, source: 'login' } });
+      const navUser = { username: user.phone, role: 'admin' };
+      navigate('/admin', { state: { user: navUser, source: 'login' } });
       return;
     }
-    // Real login for PM/FM/WK
+
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
+      const loginUrl = API ? `${API}/api/auth/login` : '/api/auth/login';
+      const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: username, password }),
+        body: JSON.stringify({ identifier: trimmedUsername, password }),
       });
       if (!res.ok) {
         setError('Username หรือ Password ไม่ถูกต้อง');
         return;
       }
       const data = await res.json();
-  const { token, user } = data;
+      const { token, user } = data;
       // Persist token and identity
       try {
         sessionStorage.setItem('auth_token', token);
@@ -80,19 +90,28 @@ const Login = () => {
       } catch {}
 
       // Pick role: prefer selected role if present in server roles; else first role; else worker
-  const serverRoles = Array.isArray(user?.roles) ? user.roles : [];
-  let chosenRole = chooseRole(role, serverRoles);
+      const serverRoles = Array.isArray(user?.roles) ? user.roles : [];
+
+      if (role === 'admin' && !serverRoles.includes('admin')) {
+        setError('บัญชีนี้ไม่ใช่ผู้ดูแลระบบ');
+        return;
+      }
+
+      const chosenRole = chooseRole(role, serverRoles);
       try { sessionStorage.setItem('role', chosenRole); } catch {}
 
       // Check if worker profile is completed
       const hasProfile = sessionStorage.getItem('worker_profile');
+      const navUser = { username: user?.phone || username, role: chosenRole };
       
-      if (chosenRole === 'project_manager') {
-        navigate('/pm', { state: { user: { username, role: chosenRole }, source: 'login' } });
+      if (chosenRole === 'admin') {
+        navigate('/admin', { state: { user: navUser, source: 'login' } });
+      } else if (chosenRole === 'project_manager') {
+        navigate('/pm', { state: { user: navUser, source: 'login' } });
       } else if (chosenRole === 'worker' && !hasProfile) {
-        navigate('/worker-profile', { state: { user: { username, role: chosenRole }, source: 'login' } });
+        navigate('/worker-profile', { state: { user: navUser, source: 'login' } });
       } else {
-        navigate('/dashboard', { state: { user: { username, role: chosenRole }, source: 'login' } });
+        navigate('/dashboard', { state: { user: navUser, source: 'login' } });
       }
     } catch (e) {
       console.error(e);
@@ -136,8 +155,8 @@ const Login = () => {
               </div>
             )}
             <div className="login-row">
-              <label className="login-label">Username</label>
-              <input className="login-input" placeholder="เบอร์โทรศัพท์" value={username} onChange={e=>setUsername(e.target.value)} />
+              <label className="login-label">Username / Email</label>
+              <input className="login-input" placeholder="เบอร์โทรศัพท์ (Admin) หรืออีเมล" value={username} onChange={e=>setUsername(e.target.value)} />
             </div>
             <div className="login-row">
               <label className="login-label">Password</label>

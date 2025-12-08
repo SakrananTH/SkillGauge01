@@ -7,7 +7,8 @@ INSERT INTO roles(`key`, description) VALUES
   ('worker', 'Crew member')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-SET @hash_default := '$2a$10$E9O5Z8SGvtQvECOH14R/2OoQl7FXGeUXrXe3G.yUpiRaY1oCbcnZC';
+SET @hash_admin := '$2a$10$X3wuLPiWccWOWyLF7Qk9FeCfCkGiyLRgQmxU1WDRdfBOoLOq2aIfa';
+SET @hash_default := '$2a$10$nJnYLwJQ6Nu2lqsErhQmIuE8KfJHO0GtKHSTuPMH6gu.fpvWWE2NS';
 
 SET @admin_user_id := '11111111-1111-1111-1111-111111111111';
 SET @pm_user_id    := '22222222-2222-2222-2222-222222222222';
@@ -16,7 +17,7 @@ SET @wk_user_id    := '44444444-4444-4444-4444-444444444444';
 
 INSERT INTO users (id, full_name, phone, email, password_hash, status)
 VALUES
-  (@admin_user_id, 'ผู้ดูแลระบบ', '+66863125891', 'admin@example.com', @hash_default, 'active'),
+  (@admin_user_id, 'ผู้ดูแลระบบ', '+66863125891', 'admin@example.com', @hash_admin, 'active'),
   (@pm_user_id,    'วิชัย ลิ้มเจริญ', '+66853334444', 'pm@example.com', @hash_default, 'active'),
   (@fm_user_id,    'สมิทธิ์ ไม่มีนี่', '+66861234567', 'foreman@example.com', @hash_default, 'active'),
   (@wk_user_id,    'โสภา ไพบูลย์', '+66869876543', 'worker@example.com', @hash_default, 'active')

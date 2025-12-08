@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AdminWorkerRegistration.css';
+import { apiRequest } from '../../utils/api';
 
 const provinceOptions = [];
 
@@ -69,6 +70,16 @@ const STEP_FIELD_PATHS = {
     ['credentials', 'confirmPassword']
   ],
   review: []
+};
+
+const serverErrorMessages = {
+  duplicate_email: 'อีเมลนี้ถูกใช้งานแล้ว',
+  duplicate_national_id: 'เลขบัตรประชาชนนี้ถูกใช้งานแล้ว',
+  invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง',
+  password_required: 'กรุณากำหนดรหัสผ่านให้ครบถ้วน',
+  invalid_national_id_length: 'เลขบัตรประชาชนต้องมี 13 หลัก',
+  workers_table_missing_id: 'ตาราง workers ไม่มีคอลัมน์ id กรุณาตรวจสอบฐานข้อมูล',
+  worker_accounts_table_missing_columns: 'ตารางบัญชีผู้ใช้ยังไม่พร้อมใช้งาน'
 };
 
 const getValueByPath = (obj, path) => path.reduce((value, key) => {
@@ -140,6 +151,10 @@ const buildInitialFormState = () => ({
 const AdminWorkerRegistration = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const editingWorker = location.state?.editWorker || null;
+  const editingWorkerId = editingWorker?.id;
+  const isEditing = Boolean(editingWorkerId);
+  const viewOnlyFlag = Boolean(location.state?.viewOnly);
   const [form, setForm] = useState(buildInitialFormState);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -150,10 +165,10 @@ const AdminWorkerRegistration = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (location.state?.editWorker) {
-      const { fullData } = location.state.editWorker;
+    if (editingWorker) {
+      const { fullData } = editingWorker;
       if (fullData) {
-        const fallbackEmail = location.state.editWorker.email;
+        const fallbackEmail = editingWorker.email;
         const credentialData = fullData.credentials || {};
         setForm(prev => ({
           personal: { ...prev.personal, ...(fullData.personal || {}) },
@@ -171,11 +186,11 @@ const AdminWorkerRegistration = () => {
           }
         }));
       }
-      if (location.state.viewOnly) {
-        setIsViewOnly(true);
-      }
     }
-  }, [location.state]);
+    if (viewOnlyFlag) {
+      setIsViewOnly(true);
+    }
+  }, [editingWorker, viewOnlyFlag]);
 
   const age = useMemo(() => {
     if (!form.personal.birthDate) {
@@ -337,30 +352,39 @@ const AdminWorkerRegistration = () => {
       validationErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
     }
 
-    if (!passwordValue) {
-      validationErrors.password = 'กรุณากำหนดรหัสผ่าน';
-    } else if (passwordValue.length < 8) {
-      validationErrors.password = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
-    }
+    const requirePassword = !isEditing || Boolean(passwordValue || confirmValue);
 
-    if (!confirmValue) {
-      validationErrors.confirmPassword = 'กรุณายืนยันรหัสผ่าน';
-    } else if (passwordValue !== confirmValue) {
-      validationErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
+    if (requirePassword) {
+      if (!passwordValue) {
+        validationErrors.password = 'กรุณากำหนดรหัสผ่าน';
+      } else if (passwordValue.length < 8) {
+        validationErrors.password = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+      }
+
+      if (!confirmValue) {
+        validationErrors.confirmPassword = 'กรุณายืนยันรหัสผ่าน';
+      } else if (passwordValue !== confirmValue) {
+        validationErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
+      }
     }
 
     return {
       errors: validationErrors,
       values: {
         email: emailValue,
-        password: passwordValue,
-        confirmPassword: confirmValue
-      }
+        password: requirePassword ? passwordValue : undefined,
+        confirmPassword: requirePassword ? confirmValue : undefined
+      },
+      requirePassword
     };
   };
 
   const handleInputChange = (section, key) => (event) => {
-    updateField(section, key, event.target.value);
+    let { value } = event.target;
+    if (section === 'personal' && key === 'nationalId') {
+      value = value.replace(/\D/g, '').slice(0, 13);
+    }
+    updateField(section, key, value);
     if (section === 'credentials' && errors[key]) {
       setErrors(prev => {
         const next = { ...prev };
@@ -383,7 +407,7 @@ const AdminWorkerRegistration = () => {
     navigate('/admin');
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setFeedback('');
     const { errors: credentialErrors, values } = validateCredentials();
@@ -399,6 +423,11 @@ const AdminWorkerRegistration = () => {
 
     setErrors({});
 
+    if (!/^\d{13}$/.test(form.personal.nationalId || '')) {
+      setFeedback('เลขบัตรประชาชนต้องมี 13 หลัก');
+      return;
+    }
+
     if (values.email !== form.credentials.email) {
       setForm(prev => ({
         ...prev,
@@ -409,76 +438,40 @@ const AdminWorkerRegistration = () => {
       }));
     }
 
-    setSubmitting(true);
-
-    setTimeout(() => {
-      const payload = {
-        personal: {
-          ...form.personal,
-          age
-        },
-        identity: { ...form.identity },
-        address: { ...form.address },
-        employment: { ...form.employment },
-        credentials: {
-          email: values.email,
-          password: values.password
-        }
-      };
-
-      const roleLabel = selectedRoleLabel;
-      const tradeLabel = selectedTradeLabel;
-
-      const existingWorkers = JSON.parse(localStorage.getItem('admin_workers') || '[]');
-      const isEditing = location.state?.editWorker;
-      let updatedWorkers;
-
-      if (isEditing) {
-        updatedWorkers = existingWorkers.map(w =>
-          w.id === location.state.editWorker.id
-            ? {
-                ...w,
-                name: form.personal.fullName || 'ไม่ระบุ',
-                phone: w.phone || '',
-                role: roleLabel,
-                category: tradeLabel,
-                level: tradeLabel,
-                status: w.status || 'active',
-                startDate: w.startDate || new Date().toISOString().split('T')[0],
-                province: form.address.province || 'ไม่ระบุ',
-                email: values.email,
-                fullData: payload
-              }
-            : w
-        );
-        setFeedback('อัปเดตข้อมูลสำเร็จ!');
-      } else {
-        const newWorker = {
-          id: Date.now(),
-          name: form.personal.fullName || 'ไม่ระบุ',
-          phone: '',
-          role: roleLabel,
-          category: tradeLabel,
-          level: tradeLabel,
-          status: 'active',
-          startDate: new Date().toISOString().split('T')[0],
-          province: form.address.province || 'ไม่ระบุ',
-          email: values.email,
-          fullData: payload
-        };
-        updatedWorkers = [...existingWorkers, newWorker];
-        setFeedback('บันทึกข้อมูลสำเร็จ!');
+    const payload = {
+      personal: {
+        ...form.personal,
+        age
+      },
+      identity: { ...form.identity },
+      address: { ...form.address },
+      employment: { ...form.employment },
+      credentials: {
+        email: values.email
       }
+    };
 
-      localStorage.setItem('admin_workers', JSON.stringify(updatedWorkers));
+    if (values.password) {
+      payload.credentials.password = values.password;
+    }
 
-      console.log('Worker saved', payload);
+    const endpoint = isEditing ? `/api/admin/workers/${editingWorkerId}` : '/api/admin/workers';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    try {
+      setSubmitting(true);
+      await apiRequest(endpoint, { method, body: payload });
+      setFeedback(isEditing ? 'อัปเดตข้อมูลสำเร็จ!' : 'บันทึกข้อมูลสำเร็จ!');
       setSubmitting(false);
-
       setTimeout(() => {
-        navigate('/admin', { state: { initialTab: 'users' } });
-      }, 1500);
-    }, 1000);
+        navigate('/admin', { state: { initialTab: 'users', refreshWorkers: true } });
+      }, 900);
+    } catch (error) {
+      const messageKey = error?.data?.message;
+      const friendlyMessage = messageKey && serverErrorMessages[messageKey];
+      setFeedback(friendlyMessage || error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      setSubmitting(false);
+    }
   };
 
   const handleNextStep = () => {
@@ -561,6 +554,8 @@ const AdminWorkerRegistration = () => {
                   <label>เลขบัตรประชาชน</label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={13}
                     value={form.personal.nationalId}
                     onChange={handleInputChange('personal', 'nationalId')}
                     placeholder="x-xxxx-xxxxx-xx-x"
@@ -887,7 +882,7 @@ const AdminWorkerRegistration = () => {
                   <button type="submit" className="primary" disabled={submitting}>
                     {submitting
                       ? 'กำลังบันทึก...'
-                      : (location.state?.editWorker ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูลเบื้องต้น')}
+                      : (isEditing ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูลเบื้องต้น')}
                   </button>
                 )}
               </div>

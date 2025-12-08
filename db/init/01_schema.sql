@@ -133,6 +133,56 @@ CREATE TABLE IF NOT EXISTS assessment_answers (
   CONSTRAINT fk_assessment_answers_option FOREIGN KEY (chosen_option_id) REFERENCES question_options(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Worker management tables
+CREATE TABLE IF NOT EXISTS workers (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  national_id VARCHAR(13) NOT NULL,
+  full_name VARCHAR(120) NOT NULL,
+  birth_date DATE NULL,
+  age TINYINT UNSIGNED NULL,
+  role_code VARCHAR(50) NOT NULL DEFAULT 'worker',
+  trade_type VARCHAR(50) NOT NULL DEFAULT 'other',
+  experience_years TINYINT UNSIGNED NULL,
+  province VARCHAR(120) NULL,
+  district VARCHAR(120) NULL,
+  subdistrict VARCHAR(120) NULL,
+  postal_code VARCHAR(20) NULL,
+  address_on_id VARCHAR(500) NULL,
+  current_address VARCHAR(500) NULL,
+  card_issue_date DATE NULL,
+  card_expiry_date DATE NULL,
+  employment_status VARCHAR(30) NOT NULL DEFAULT 'active',
+  start_date DATE NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_workers_national_id (national_id),
+  KEY idx_workers_role_code (role_code),
+  KEY idx_workers_trade_type (trade_type),
+  KEY idx_workers_status (employment_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS worker_accounts (
+  worker_id INT UNSIGNED NOT NULL,
+  email VARCHAR(120) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
+  last_login DATETIME(6) NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (worker_id),
+  UNIQUE KEY uq_worker_accounts_email (email),
+  CONSTRAINT fk_worker_accounts_worker FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS worker_profiles (
+  worker_id INT UNSIGNED NOT NULL,
+  payload LONGTEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (worker_id),
+  CONSTRAINT fk_worker_profiles_worker FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS signup_forms (
   id CHAR(36) NOT NULL,
   full_name VARCHAR(255) NOT NULL,
