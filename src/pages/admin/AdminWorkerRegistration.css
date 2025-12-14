@@ -62,13 +62,23 @@
 }
 
 .registration-feedback {
-  background: #e6f4ea;
-  border: 1px solid #c7e8cf;
-  color: #137333;
   padding: 0.85rem 1rem;
   border-radius: 10px;
   margin-bottom: 1.5rem;
   font-size: 0.95rem;
+  border: 1px solid transparent;
+}
+
+.registration-feedback.success {
+  background: #e6f4ea;
+  border-color: #c7e8cf;
+  color: #137333;
+}
+
+.registration-feedback.error {
+  background: #fef2f2;
+  border-color: #feb2b2;
+  color: #c53030;
 }
 
 .registration-content {
@@ -323,6 +333,79 @@
   color: #e53e3e;
 }
 
+.suggestion-field {
+  position: relative;
+  width: 100%;
+}
+
+.suggestion-field input {
+  width: 100%;
+  max-width: none;
+}
+
+.address-compact-grid {
+  justify-items: start;
+}
+
+.address-compact-grid .field,
+.address-compact-grid .suggestion-field {
+  width: fit-content;
+  min-width: 11rem;
+}
+
+.address-compact-grid .field input,
+.address-compact-grid .suggestion-field input {
+  width: fit-content;
+  min-width: 11rem;
+  max-width: 100%;
+}
+
+.address-compact-grid .address-suggestion-panel {
+  min-width: 11rem;
+}
+
+.address-suggestion-panel {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #d4dae4;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.address-suggestion-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.address-suggestion-item {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #1f2a3c;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.address-suggestion-item:hover {
+  background: #eef4ff;
+  color: #133a94;
+}
+
+.address-suggestion-status {
+  padding: 0.75rem 0.85rem;
+  color: #4a5568;
+  font-size: 0.88rem;
+}
+
 .account-step {
   display: flex;
   flex-direction: column;
@@ -529,20 +612,24 @@
   padding-right: 3rem;
 }
 
-.toggle-visibility {
+.password-input.has-generator input {
+  padding-right: 4.5rem;
+}
+
+.generate-password-btn {
   position: absolute;
   right: 0.75rem;
   background: none;
   border: none;
-  color: #4a5568;
+  color: #1f7aec;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 0.25rem 0;
+  padding: 0.25rem 0.35rem;
 }
 
-.toggle-visibility:hover {
-  color: #1f7aec;
+.generate-password-btn:hover {
+  color: #1565d8;
 }
 
 .credentials-grid .field {
@@ -653,6 +740,22 @@
 
   .field-grid.two-columns {
     grid-template-columns: 1fr;
+  }
+
+  .address-compact-grid {
+    justify-items: stretch;
+  }
+
+  .address-compact-grid .field,
+  .address-compact-grid .suggestion-field,
+  .address-compact-grid .field input,
+  .address-compact-grid .suggestion-field input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .address-compact-grid .address-suggestion-panel {
+    min-width: 100%;
   }
 
   .credentials-grid .field {

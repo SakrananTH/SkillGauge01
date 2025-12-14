@@ -5,6 +5,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mysql from 'mysql2/promise';
 import { randomUUID } from 'crypto';
+import { readFile } from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { z } from 'zod';
 
 const {
@@ -12,12 +15,174 @@ const {
   CORS_ORIGIN = 'http://localhost:3002',
   MYSQL_HOST = 'localhost',
   MYSQL_PORT = '3306',
-  MYSQL_DATABASE = 'skillgauge',
-  MYSQL_USER = 'skillgauge',
-  MYSQL_PASSWORD = 'skillgauge',
+  MYSQL_DATABASE = 'admin-worker-registration',
+  MYSQL_USER = 'root',
+  MYSQL_PASSWORD = 'rootpassword',
   JWT_SECRET = 'dev_secret_change_me',
   JWT_EXPIRES_IN = '12h'
 } = process.env;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const resolvedThaiAddressPath = (() => {
+  const customPath = process.env.THAI_ADDRESS_DATA_PATH;
+  if (customPath && customPath.trim()) {
+    return path.resolve(customPath.trim());
+  }
+  return path.resolve(
+    __dirname,
+    '..',
+    '..',
+    'thailand-province-district-subdistrict-zipcode-latitude-longitude-master',
+    'thailand-province-district-subdistrict-zipcode-latitude-longitude-master',
+    'output.csv'
+  );
+})();
+
+const allowedAddressFields = new Set(['province', 'district', 'subdistrict']);
+
+let thaiAddressRecords = [];
+let thaiAddressLastLoadedAt = null;
+let thaiAddressLoadError = null;
+
+function normalizeSearchText(value) {
+  return String(value ?? '')
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/\s+/g, '');
+}
+
+function dedupeRecords(records, keySelector) {
+  if (!Array.isArray(records) || !keySelector) {
+    return [];
+  }
+  const seen = new Set();
+  const output = [];
+  for (const record of records) {
+    const key = keySelector(record);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    output.push(record);
+  }
+  return output;
+}
+
+async function loadThaiAddressDataset(dataPath = resolvedThaiAddressPath) {
+  try {
+    const fileContent = await readFile(dataPath, 'utf8');
+    const lines = fileContent.split(/\r?\n/);
+    const nextRecords = [];
+
+    for (let index = 1; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (!line || !line.trim()) {
+        continue;
+      }
+      const parts = line.split(',');
+      if (parts.length < 4) {
+        continue;
+      }
+
+      const [provinceRaw, districtRaw, subdistrictRaw, zipcodeRaw, latitudeRaw, longitudeRaw] = parts;
+      const province = (provinceRaw || '').trim();
+      const district = (districtRaw || '').trim();
+      const subdistrict = (subdistrictRaw || '').trim();
+      const zipcode = (zipcodeRaw || '').trim();
+
+      if (!province || !district || !subdistrict || !zipcode) {
+        continue;
+      }
+
+      const latitude = latitudeRaw ? Number.parseFloat(latitudeRaw) : null;
+      const longitude = longitudeRaw ? Number.parseFloat(longitudeRaw) : null;
+
+      nextRecords.push({
+        province,
+        district,
+        subdistrict,
+        zipcode,
+        latitude: Number.isFinite(latitude) ? latitude : null,
+        longitude: Number.isFinite(longitude) ? longitude : null,
+        searchProvince: normalizeSearchText(province),
+        searchDistrict: normalizeSearchText(district),
+        searchSubdistrict: normalizeSearchText(subdistrict),
+        searchZipcode: normalizeSearchText(zipcode)
+      });
+    }
+
+    thaiAddressRecords = nextRecords;
+    thaiAddressLastLoadedAt = new Date();
+    thaiAddressLoadError = null;
+
+    if (thaiAddressRecords.length > 0) {
+      console.info(
+        `[addresses] Loaded ${thaiAddressRecords.length.toLocaleString()} Thai address records from ${dataPath}`
+      );
+    } else {
+      console.warn(`[addresses] No Thai address records were loaded from ${dataPath}`);
+    }
+  } catch (error) {
+    thaiAddressRecords = [];
+    thaiAddressLastLoadedAt = null;
+    thaiAddressLoadError = error;
+    console.warn(`[addresses] Unable to load Thai address dataset from ${dataPath}`, error?.message || error);
+  }
+}
+
+function searchThaiAddressRecords({ field, query, provinceFilter, districtFilter, subdistrictFilter, limit }) {
+  if (!allowedAddressFields.has(field)) {
+    return [];
+  }
+
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  let results = thaiAddressRecords;
+  if (!Array.isArray(results) || results.length === 0) {
+    return [];
+  }
+
+  const normalizedProvince = normalizeSearchText(provinceFilter);
+  if (normalizedProvince) {
+    results = results.filter(record => record.searchProvince === normalizedProvince);
+  }
+
+  const normalizedDistrict = normalizeSearchText(districtFilter);
+  if (normalizedDistrict) {
+    results = results.filter(record => record.searchDistrict === normalizedDistrict);
+  }
+
+  const normalizedSubdistrict = normalizeSearchText(subdistrictFilter);
+  if (normalizedSubdistrict) {
+    results = results.filter(record => record.searchSubdistrict === normalizedSubdistrict);
+  }
+
+  if (field === 'province') {
+    results = results.filter(record => record.searchProvince.includes(normalizedQuery));
+    results = dedupeRecords(results, record => record.searchProvince);
+  } else if (field === 'district') {
+    results = results.filter(record => record.searchDistrict.includes(normalizedQuery));
+    results = dedupeRecords(results, record => `${record.searchProvince}|${record.searchDistrict}`);
+  } else {
+    results = results.filter(record => record.searchSubdistrict.includes(normalizedQuery));
+    results = dedupeRecords(
+      results,
+      record => `${record.searchProvince}|${record.searchDistrict}|${record.searchSubdistrict}|${record.zipcode}`
+    );
+  }
+
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 50) : 12;
+  return results.slice(0, safeLimit);
+}
+
+loadThaiAddressDataset().catch(error => {
+  console.warn('[addresses] Initial dataset load failed', error?.message || error);
+});
 
 const pool = mysql.createPool({
   host: MYSQL_HOST,
@@ -33,6 +198,46 @@ const pool = mysql.createPool({
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
+
+app.get('/api/lookups/addresses', (req, res) => {
+  const fieldRaw = typeof req.query.field === 'string' ? req.query.field.toLowerCase() : '';
+  const queryRaw = typeof req.query.query === 'string' ? req.query.query.trim() : '';
+
+  const provinceFilter = typeof req.query.province === 'string' ? req.query.province : '';
+  const districtFilter = typeof req.query.district === 'string' ? req.query.district : '';
+  const subdistrictFilter = typeof req.query.subdistrict === 'string' ? req.query.subdistrict : '';
+
+  const limitParam = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+  const limitValue = Number.parseInt(typeof limitParam === 'string' ? limitParam : '', 10);
+
+  const searchResults = searchThaiAddressRecords({
+    field: fieldRaw,
+    query: queryRaw,
+    provinceFilter,
+    districtFilter,
+    subdistrictFilter,
+    limit: Number.isNaN(limitValue) ? undefined : limitValue
+  }).map(record => ({
+    province: record.province,
+    district: record.district,
+    subdistrict: record.subdistrict,
+    zipcode: record.zipcode,
+    latitude: record.latitude,
+    longitude: record.longitude
+  }));
+
+  res.json({
+    query: queryRaw,
+    field: fieldRaw,
+    results: searchResults,
+    meta: {
+      total: searchResults.length,
+      datasetLoaded: thaiAddressRecords.length > 0,
+      lastLoadedAt: thaiAddressLastLoadedAt ? thaiAddressLastLoadedAt.toISOString() : null,
+      loadError: thaiAddressLoadError ? String(thaiAddressLoadError.message || thaiAddressLoadError) : null
+    }
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Utility helpers

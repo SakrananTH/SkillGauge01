@@ -1,6 +1,36 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: skillgauge-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: admin-worker-registration
+      MYSQL_USER: skillgauge
+      MYSQL_PASSWORD: skillgauge
+    ports:
+      - "3307:3306"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5
+    container_name: skillgauge-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    ports:
+      - "8080:80"
+    depends_on:
+      mysql:
+        condition: service_started
+
   db:
     image: postgres:16
     container_name: skillgauge-db
@@ -49,16 +79,20 @@ services:
     environment:
       - PORT=4000
       - CORS_ORIGIN=http://localhost:3002
-      - PGHOST=db
-      - PGPORT=5432
-      - PGDATABASE=skillgauge
-      - PGUSER=skillgauge
-      - PGPASSWORD=skillgauge
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=admin-worker-registration
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=rootpassword
+      - THAI_ADDRESS_DATA_PATH=/data/thai-addresses/thailand-province-district-subdistrict-zipcode-latitude-longitude-master/output.csv
     depends_on:
+      mysql:
+        condition: service_started
       db:
         condition: service_healthy
     volumes:
       - .:/app
+      - ../thailand-province-district-subdistrict-zipcode-latitude-longitude-master:/data/thai-addresses:ro
     profiles:
       - dev
       - hot
@@ -97,3 +131,4 @@ services:
 
 volumes:
   pgdata:
+  mysql_data:

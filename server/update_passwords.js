@@ -24,6 +24,7 @@ const updates = [
       console.log(`✓ Updated ${role} (${phone}) - ${result.rowCount} row(s)`);
     }
     console.log('\n=== Login Credentials ===');
+    console.log('Admin: 0863125891 / 0863503381');
     console.log('PM: +66853334444 / pm123456');
     console.log('FM: +66861234567 / fm123456');
     console.log('WK: +66869876543 / wk123456');
