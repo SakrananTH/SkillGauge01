@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS workers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   national_id VARCHAR(13) NOT NULL,
   full_name VARCHAR(120) NOT NULL,
+  phone VARCHAR(20) NULL,
   birth_date DATE NULL,
   age TINYINT UNSIGNED NULL,
   role_code VARCHAR(50) NOT NULL DEFAULT 'worker',
@@ -157,6 +158,7 @@ CREATE TABLE IF NOT EXISTS workers (
   updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (id),
   UNIQUE KEY uq_workers_national_id (national_id),
+  KEY idx_workers_phone (phone),
   KEY idx_workers_role_code (role_code),
   KEY idx_workers_trade_type (trade_type),
   KEY idx_workers_status (employment_status)

@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './AdminSettings.css';
 
-const AdminSettings = ({ onAvatarChange }) => {
-  const [avatar, setAvatar] = useState(null);
-  const [preview, setPreview] = useState(null);
+const AdminSettings = ({ avatar, onAvatarChange }) => {
+  const [preview, setPreview] = useState(avatar);
 
   useEffect(() => {
-    const storedAvatar = localStorage.getItem('admin_avatar');
-    if (storedAvatar) {
-      setAvatar(storedAvatar);
-      setPreview(storedAvatar);
-    }
-  }, []);
+    setPreview(avatar);
+  }, [avatar]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -19,25 +14,25 @@ const AdminSettings = ({ onAvatarChange }) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
-        setAvatar(reader.result);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleSave = () => {
-    if (avatar) {
-      localStorage.setItem('admin_avatar', avatar);
-      if (onAvatarChange) {
-        onAvatarChange(avatar);
-      }
-      alert('บันทึกรูปโปรไฟล์เรียบร้อยแล้ว');
+    if (preview) {
+      localStorage.setItem('admin_avatar', preview);
+    } else {
+      localStorage.removeItem('admin_avatar');
     }
+    if (onAvatarChange) {
+      onAvatarChange(preview);
+    }
+    alert('บันทึกรูปโปรไฟล์เรียบร้อยแล้ว');
   };
 
   const handleRemove = () => {
     localStorage.removeItem('admin_avatar');
-    setAvatar(null);
     setPreview(null);
     if (onAvatarChange) {
       onAvatarChange(null);

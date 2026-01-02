@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminSignup.css';
 
@@ -53,6 +53,37 @@ const AdminSignup = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const hiddenDateRef = useRef(null);
+
+  const formatThaiDateDisplay = (isoDate) => {
+    if (!isoDate) return '';
+    // isoDate expected YYYY-MM-DD
+    const parts = isoDate.split('-');
+    if (parts.length !== 3) return isoDate;
+    const [y, m, d] = parts;
+    const buddhistYearFull = Number(y) + 543; // e.g. 2025 -> 2568
+    const buddhistYearTwo = String(buddhistYearFull).slice(-2); // last two digits
+    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${buddhistYearTwo}`;
+  };
+
+  const openDatePicker = () => {
+    const el = hiddenDateRef.current;
+    if (!el) return;
+    // Prefer the showPicker API if available
+    if (typeof el.showPicker === 'function') {
+      el.showPicker();
+    } else {
+      el.focus();
+      // some browsers will open the native picker on focus
+    }
+  };
+
+  const onHiddenDateChange = (e) => {
+    const iso = e.target.value; // YYYY-MM-DD
+    setFormData(prev => ({ ...prev, birthDate: iso }));
+    if (errors.birthDate) setErrors(prev => ({ ...prev, birthDate: '' }));
   };
 
   const validateForm = () => {
@@ -229,11 +260,19 @@ const AdminSignup = () => {
             <div className="form-field birthdate-field">
               <label>วันเดือนปีเกิด</label>
               <input
-                type="date"
-                name="birthDate"
-                value={formData.birthDate}
-                onChange={handleChange}
+                type="text"
+                readOnly
+                placeholder="DD/MM/YY (พ.ศ.)"
+                value={formatThaiDateDisplay(formData.birthDate)}
+                onClick={openDatePicker}
                 className={errors.birthDate ? 'error' : ''}
+              />
+              <input
+                type="date"
+                ref={hiddenDateRef}
+                style={{ display: 'none' }}
+                value={formData.birthDate}
+                onChange={onHiddenDateChange}
               />
               {errors.birthDate && <span className="error-message">{errors.birthDate}</span>}
             </div>

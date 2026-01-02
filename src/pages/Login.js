@@ -156,7 +156,7 @@ const Login = () => {
             )}
             <div className="login-row">
               <label className="login-label">Username / Email</label>
-              <input className="login-input" placeholder="เบอร์โทรศัพท์ (Admin) หรืออีเมล" value={username} onChange={e=>setUsername(e.target.value)} />
+              <input className="login-input" placeholder="อีเมล ตัวอย่าง: sakranan@gmail.com" value={username} onChange={e=>setUsername(e.target.value)} />
             </div>
             <div className="login-row">
               <label className="login-label">Password</label>

@@ -1,11 +1,14 @@
-import { Pool } from 'pg';
+import 'dotenv/config';
+import mysql from 'mysql2/promise';
 
-const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  database: 'skillgauge',
-  user: 'skillgauge',
-  password: 'skillgauge'
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST || 'localhost',
+  port: Number(process.env.MYSQL_PORT) || 3306,
+  database: process.env.MYSQL_DATABASE || 'admin-worker-registration',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || 'rootpassword',
+  waitForConnections: true,
+  connectionLimit: 1
 });
 
 const updates = [
@@ -17,11 +20,11 @@ const updates = [
 (async () => {
   try {
     for (const { phone, hash, role } of updates) {
-      const result = await pool.query(
-        'UPDATE users SET password_hash = $1 WHERE phone = $2',
+      const [result] = await pool.execute(
+        'UPDATE users SET password_hash = ? WHERE phone = ?',
         [hash, phone]
       );
-      console.log(`✓ Updated ${role} (${phone}) - ${result.rowCount} row(s)`);
+      console.log(`✓ Updated ${role} (${phone}) - ${result.affectedRows} row(s)`);
     }
     console.log('\n=== Login Credentials ===');
     console.log('Admin: 0863125891 / 0863503381');

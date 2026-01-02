@@ -174,10 +174,10 @@ const AdminUsersTable = () => {
         <div className="admin-workers-table">
           <div className="admin-workers-table__header">
             <div className="col col-name">ชื่อ-นามสกุล</div>
+            <div className="col col-email">อีเมล</div>
             <div className="col col-phone">เบอร์โทร</div>
-            <div className="col col-category">ประเภทช่าง</div>
+            <div className="col col-category">Role</div>
             <div className="col col-level">ระดับทักษะ</div>
-            <div className="col col-province">จังหวัด</div>
             <div className="col col-actions">จัดการ</div>
           </div>
           <div className="admin-workers-table__body">
@@ -195,10 +195,10 @@ const AdminUsersTable = () => {
                   <div className="col col-name">
                     <span className="worker-name">{worker.name}</span>
                   </div>
+                  <div className="col col-email">{worker.email}</div>
                   <div className="col col-phone">{worker.phone}</div>
-                  <div className="col col-category">{worker.category}</div>
-                  <div className="col col-level">{worker.level}</div>
-                  <div className="col col-province">{worker.province}</div>
+                  <div className="col col-category">{worker.role}</div>
+                  <div className="col col-level">{worker.category}</div>
                   <div className="col col-actions">
                     <button
                       type="button"

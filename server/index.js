@@ -516,6 +516,7 @@ function buildWorkerProfileFromRow(row, fallbackProfile) {
   };
 
   profile.address = {
+    phone: toNullableString(getColumn(row, 'phone', 'Phone')) || profile.address?.phone || '',
     addressOnId:
       toNullableString(getColumn(row, 'address_on_id', 'addressOnId')) || profile.address?.addressOnId || '',
     province: toNullableString(getColumn(row, 'province', 'Province')) || profile.address?.province || '',
@@ -615,6 +616,7 @@ function buildWorkerDataFromPayload(payload, { forUpdate = false } = {}) {
   const base = {
     national_id: toNullableString(payload.personal?.nationalId),
     full_name: toNullableString(payload.personal?.fullName),
+    phone: toNullableString(payload.address?.phone),
     birth_date: birthDate,
     age,
     role_code: toNullableString(payload.employment?.role),
@@ -950,16 +952,15 @@ const workerRegistrationSchema = z.object({
       expiryDate: optionalString(30)
     })
     .default({}),
-  address: z
-    .object({
-      addressOnId: optionalString(500),
-      province: optionalString(120),
-      district: optionalString(120),
-      subdistrict: optionalString(120),
-      postalCode: optionalString(20),
-      currentAddress: optionalString(500)
-    })
-    .default({}),
+  address: z.object({
+    phone: z.string().trim().min(1).max(20),
+    addressOnId: optionalString(500),
+    province: optionalString(120),
+    district: optionalString(120),
+    subdistrict: optionalString(120),
+    postalCode: optionalString(20),
+    currentAddress: optionalString(500)
+  }),
   employment: z.object({
     role: optionalString(50),
     tradeType: optionalString(50),
@@ -1638,6 +1639,7 @@ app.post('/api/admin/workers', async (req, res) => {
     payload.personal.nationalId = normalizedNationalId;
     const normalizedEmail = normalizeEmail(payload.credentials?.email);
     const password = payload.credentials?.password;
+    const rawPhone = String(payload.address?.phone ?? '').trim();
 
     if (!normalizedEmail) {
       return res.status(400).json({ message: 'invalid_email' });
@@ -1645,6 +1647,10 @@ app.post('/api/admin/workers', async (req, res) => {
     if (!password) {
       return res.status(400).json({ message: 'password_required' });
     }
+    if (!/^0\d{9}$/.test(rawPhone)) {
+      return res.status(400).json({ message: 'invalid_phone' });
+    }
+    payload.address.phone = rawPhone;
 
     const workerData = buildWorkerDataFromPayload(payload);
     if (!workerData.national_id) {
@@ -1749,6 +1755,11 @@ app.put('/api/admin/workers/:id', async (req, res) => {
     payload.personal.nationalId = normalizedNationalId;
     const normalizedEmail = normalizeEmail(payload.credentials?.email);
     if (!normalizedEmail) return res.status(400).json({ message: 'invalid_email' });
+    const rawPhone = String(payload.address?.phone ?? '').trim();
+    if (!/^0\d{9}$/.test(rawPhone)) {
+      return res.status(400).json({ message: 'invalid_phone' });
+    }
+    payload.address.phone = rawPhone;
 
     const workerData = buildWorkerDataFromPayload(payload, { forUpdate: true });
     workerData.national_id = toNullableString(payload.personal?.nationalId);

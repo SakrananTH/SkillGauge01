@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './AdminWorkerRegistration.css';
+import ThaiDatePicker from '../../components/ThaiDatePicker';
 import { apiRequest } from '../../utils/api';
 
 const provinceOptions = [];
@@ -26,6 +27,8 @@ const UPPERCASE_SET = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const LOWERCASE_SET = 'abcdefghijkmnopqrstuvwxyz';
 const DIGIT_SET = '23456789';
 const SYMBOL_SET = '!@#$%^&*';
+const MIN_PHONE_LENGTH = 10;
+const MAX_PHONE_LENGTH = 10;
 
 const buildRandomPassword = (length = RANDOM_PASSWORD_LENGTH) => {
   const pickFrom = source => source[Math.floor(Math.random() * source.length)];
@@ -78,6 +81,7 @@ const STEP_FIELD_PATHS = {
     ['personal', 'birthDate'],
     ['employment', 'role'],
     ['employment', 'tradeType'],
+    ['address', 'phone'],
     ['address', 'addressOnId'],
     ['address', 'province'],
     ['address', 'district'],
@@ -102,6 +106,7 @@ const IMPORTANT_FIELD_PATHS = {
     ['personal', 'birthDate'],
     ['employment', 'role'],
     ['employment', 'tradeType'],
+    ['address', 'phone'],
     ['address', 'addressOnId'],
     ['address', 'currentAddress'],
     ['identity', 'issueDate'],
@@ -123,6 +128,7 @@ const REQUIRED_FIELD_MESSAGES = {
   'address.district': 'กรุณาระบุอำเภอ',
   'address.subdistrict': 'กรุณาระบุตำบล',
   'address.postalCode': 'กรุณาระบุรหัสไปรษณีย์',
+  'address.phone': 'กรุณากรอกเบอร์โทรศัพท์',
   'address.addressOnId': 'กรุณากรอกที่อยู่ตามบัตรประชาชน',
   'address.currentAddress': 'กรุณากรอกที่อยู่ปัจจุบัน',
   'identity.issueDate': 'กรุณาระบุวันออกบัตร',
@@ -134,6 +140,7 @@ const serverErrorMessages = {
   duplicate_national_id: 'เลขบัตรประชาชนนี้ถูกใช้งานแล้ว',
   invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง',
   password_required: 'กรุณากำหนดรหัสผ่านให้ครบถ้วน',
+  invalid_phone: 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง',
   invalid_national_id_length: 'เลขบัตรประชาชนต้องมี 13 หลัก',
   workers_table_missing_id: 'ตาราง workers ไม่มีคอลัมน์ id กรุณาตรวจสอบฐานข้อมูล',
   worker_accounts_table_missing_columns: 'ตารางบัญชีผู้ใช้ยังไม่พร้อมใช้งาน'
@@ -175,6 +182,15 @@ const formatDate = (value) => {
   }
 };
 
+const formatThaiDateForInput = (isoDate) => {
+  if (!isoDate) return '';
+  const parts = isoDate.split('-');
+  if (parts.length !== 3) return isoDate;
+  const [y, m, d] = parts;
+  const thYear = parseInt(y, 10) + 543;
+  return `${d}/${m}/${thYear}`;
+};
+
 const buildInitialFormState = () => ({
   personal: {
     nationalId: '',
@@ -186,6 +202,7 @@ const buildInitialFormState = () => ({
     expiryDate: ''
   },
   address: {
+    phone: '',
     addressOnId: '',
     province: '',
     district: '',
@@ -225,6 +242,21 @@ const AdminWorkerRegistration = () => {
   const addressLookupDebounceRef = useRef(null);
   const addressLookupAbortRef = useRef(null);
   const addressBlurTimeoutRef = useRef(null);
+
+  // Date picker refs
+  const birthDateRef = useRef(null);
+  const issueDateRef = useRef(null);
+  const expiryDateRef = useRef(null);
+
+  const openDatePicker = (ref) => {
+    if (ref.current) {
+      if (typeof ref.current.showPicker === 'function') {
+        ref.current.showPicker();
+      } else {
+        ref.current.focus();
+      }
+    }
+  };
 
   const handleGeneratePassword = () => {
     const generated = buildRandomPassword();
@@ -346,6 +378,7 @@ const AdminWorkerRegistration = () => {
         title: 'ข้อมูลที่อยู่',
         stepIndex: STEP_INDEX_BY_KEY.personal,
         items: [
+          { label: 'เบอร์โทรศัพท์', value: form.address.phone?.trim() || 'ไม่ระบุ' },
           { label: 'ที่อยู่ตามบัตรประชาชน', value: form.address.addressOnId?.trim() || 'ไม่ระบุ' },
           { label: 'จังหวัด', value: form.address.province?.trim() || 'ไม่ระบุ' },
           { label: 'อำเภอ', value: form.address.district?.trim() || 'ไม่ระบุ' },
@@ -666,6 +699,24 @@ const AdminWorkerRegistration = () => {
         value = value.replace(/\D/g, '').slice(0, 5);
       }
 
+      if (key === 'phone') {
+        value = value.replace(/\D/g, '').slice(0, MAX_PHONE_LENGTH);
+        updateField(section, key, value);
+        const phoneErrorKey = getErrorKey('address', 'phone');
+        setErrors(prev => {
+          const next = { ...prev };
+          if (value.length === 0) {
+            next[phoneErrorKey] = REQUIRED_FIELD_MESSAGES[phoneErrorKey];
+          } else if (value.length < MIN_PHONE_LENGTH) {
+            next[phoneErrorKey] = `เบอร์โทรศัพท์ต้องมี ${MIN_PHONE_LENGTH} หลัก`;
+          } else if (next[phoneErrorKey]) {
+            delete next[phoneErrorKey];
+          }
+          return next;
+        });
+        return;
+      }
+
       if (key === 'province') {
         setForm(prev => ({
           ...prev,
@@ -891,6 +942,18 @@ const AdminWorkerRegistration = () => {
             result.focusIndex = index;
           }
         }
+
+        const phoneValue = (form.address.phone || '').trim();
+        if (phoneValue.length > 0 && phoneValue.length < MIN_PHONE_LENGTH) {
+          const phoneKey = getErrorKey('address', 'phone');
+          collectedErrors[phoneKey] = `เบอร์โทรศัพท์ต้องมี ${MIN_PHONE_LENGTH} หลัก`;
+          setFeedback('กรุณากรอกเบอร์โทรศัพท์ให้ครบถ้วน');
+          setFeedbackType('error');
+          result.valid = false;
+          if (result.focusIndex === undefined) {
+            result.focusIndex = index;
+          }
+        }
       }
     }
 
@@ -1048,10 +1111,9 @@ const AdminWorkerRegistration = () => {
                 </div>
                 <div className="field">
                   <label>วันเกิด*</label>
-                  <input
-                    type="date"
+                  <ThaiDatePicker
                     value={form.personal.birthDate}
-                    onChange={handleInputChange('personal', 'birthDate')}
+                    onChange={(isoDate) => updateField('personal', 'birthDate', isoDate)}
                     className={errors[getErrorKey('personal', 'birthDate')] ? 'error' : ''}
                   />
                   {errors[getErrorKey('personal', 'birthDate')] && (
@@ -1122,6 +1184,21 @@ const AdminWorkerRegistration = () => {
             <section className="field-section">
               <h3 className="field-section-title">ข้อมูลที่อยู่</h3>
               <div className="field-grid one-column">
+                <div className="field">
+                  <label>เบอร์โทรศัพท์*</label>
+                  <input
+                    type="text"
+                    inputMode="tel"
+                    maxLength={10}
+                    value={form.address.phone}
+                    onChange={handleInputChange('address', 'phone')}
+                    placeholder="0xx-xxx-xxxx"
+                    className={errors[getErrorKey('address', 'phone')] ? 'error' : ''}
+                  />
+                  {errors[getErrorKey('address', 'phone')] && (
+                    <span className="error-message">{errors[getErrorKey('address', 'phone')]}</span>
+                  )}
+                </div>
                 <div className="field">
                   <label>ที่อยู่ตามบัตรประชาชน*</label>
                   <textarea
@@ -1323,10 +1400,9 @@ const AdminWorkerRegistration = () => {
               <div className="field-grid two-columns">
                 <div className="field">
                   <label>วันออกบัตร*</label>
-                  <input
-                    type="date"
+                  <ThaiDatePicker
                     value={form.identity.issueDate}
-                    onChange={handleInputChange('identity', 'issueDate')}
+                    onChange={(isoDate) => updateField('identity', 'issueDate', isoDate)}
                     className={errors[getErrorKey('identity', 'issueDate')] ? 'error' : ''}
                   />
                   {errors[getErrorKey('identity', 'issueDate')] && (
@@ -1335,10 +1411,9 @@ const AdminWorkerRegistration = () => {
                 </div>
                 <div className="field">
                   <label>วันหมดอายุบัตร*</label>
-                  <input
-                    type="date"
+                  <ThaiDatePicker
                     value={form.identity.expiryDate}
-                    onChange={handleInputChange('identity', 'expiryDate')}
+                    onChange={(isoDate) => updateField('identity', 'expiryDate', isoDate)}
                     className={errors[getErrorKey('identity', 'expiryDate')] ? 'error' : ''}
                   />
                   {errors[getErrorKey('identity', 'expiryDate')] && (
