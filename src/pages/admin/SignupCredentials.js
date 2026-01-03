@@ -9,10 +9,8 @@ const AdminSignupCredentials = () => {
   const [form, setForm] = useState({
     email: '',
     password: '',
-    confirmPassword: '',
   });
   const [showPass, setShowPass] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,8 +80,6 @@ const AdminSignupCredentials = () => {
 
     if (!form.password) newErrors.password = 'กรุณากรอกรหัสผ่าน';
     else if (form.password.length < 8) newErrors.password = 'รหัสผ่านอย่างน้อย 8 ตัวอักษร';
-
-    if (form.password !== form.confirmPassword) newErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -230,27 +226,6 @@ const AdminSignupCredentials = () => {
             </div>
             {errors.password && <span className="error-message">{errors.password}</span>}
             <span className="admin-cred-hint">อย่างน้อย 8 ตัวอักษร แนะนำให้ผสมตัวเลขและอักขระพิเศษ</span>
-          </div>
-
-          <div className="form-group admin-cred-field">
-            <label>ยืนยันรหัสผ่าน</label>
-            <div className="password-input-wrapper">
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                placeholder="********"
-                className={errors.confirmPassword ? 'error' : ''}
-              />
-              <button type="button" className="eye-toggle" onClick={() => setShowConfirm(s => !s)}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-eye-fill" viewBox="0 0 16 16">
-                  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>
-                  <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
-                </svg>
-              </button>
-            </div>
-            {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
           </div>
 
           {errors.submit && <div className="error-message submit-error">{errors.submit}</div>}

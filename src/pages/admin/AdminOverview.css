@@ -289,6 +289,7 @@
   transition: all 0.2s;
   position: relative;
   overflow: hidden;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
 }
 
 .quick-action-card:hover {
@@ -338,11 +339,13 @@
   color: #334155;
   font-size: 0.95rem;
   margin-bottom: 0.25rem;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
 }
 
 .action-desc {
   font-size: 0.8rem;
   color: #94a3b8;
+  font-family: 'Noto Sans Thai', 'Inter', sans-serif;
 }
 
 @media (max-width: 1024px) {

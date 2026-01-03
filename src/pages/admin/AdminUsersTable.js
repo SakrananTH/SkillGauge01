@@ -175,9 +175,9 @@ const AdminUsersTable = () => {
           <div className="admin-workers-table__header">
             <div className="col col-name">ชื่อ-นามสกุล</div>
             <div className="col col-email">อีเมล</div>
+            <div className="col col-password">รหัสผ่าน</div>
             <div className="col col-phone">เบอร์โทร</div>
-            <div className="col col-category">Role</div>
-            <div className="col col-level">ระดับทักษะ</div>
+            <div className="col col-role">Role</div>
             <div className="col col-actions">จัดการ</div>
           </div>
           <div className="admin-workers-table__body">
@@ -192,14 +192,14 @@ const AdminUsersTable = () => {
             ) : (
               filteredWorkers.map(worker => (
                 <div key={worker.id} className="admin-workers-table__row">
-                  <div className="col col-name">
+                  <div className="col col-name" data-label="ชื่อ-นามสกุล">
                     <span className="worker-name">{worker.name}</span>
                   </div>
-                  <div className="col col-email">{worker.email}</div>
-                  <div className="col col-phone">{worker.phone}</div>
-                  <div className="col col-category">{worker.role}</div>
-                  <div className="col col-level">{worker.category}</div>
-                  <div className="col col-actions">
+                  <div className="col col-email" data-label="อีเมล">{worker.email || '—'}</div>
+                  <div className="col col-password" data-label="รหัสผ่าน">{worker.passwordHash || '—'}</div>
+                  <div className="col col-phone" data-label="เบอร์โทร">{worker.phone || '—'}</div>
+                  <div className="col col-role" data-label="Role">{worker.role || '—'}</div>
+                  <div className="col col-actions" data-label="จัดการ">
                     <button
                       type="button"
                       className="action-btn action-btn--view"

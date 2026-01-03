@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import '../Dashboard.css';
 import './AdminQuizBank.css';
+import { apiRequest } from '../../utils/api';
 
 const CATEGORY_OPTIONS = [
   { value: 'safety', label: '1.ช่างโครงสร้าง' },
@@ -11,13 +12,13 @@ const CATEGORY_OPTIONS = [
   { value: 'general', label: '6.ช่างฝ้าเพดาน' },
   { value: 'roof', label: '7.ช่างหลังคา' },
   { value: 'tile', label: '8.ช่างกระเบื้อง' },
-  { value: 'none', label: '9.ไม่มี' },
+  { value: 'none', label: '9.ไม่มี' }
 ];
 
 const DIFFICULTY_OPTIONS = [
   { value: 'easy', label: 'ระดับที่ 1' },
   { value: 'medium', label: 'ระดับที่ 2' },
-  { value: 'hard', label: 'ระดับที่ 3' },
+  { value: 'hard', label: 'ระดับที่ 3' }
 ];
 
 const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((acc, option) => {
@@ -30,85 +31,197 @@ const DIFFICULTY_LABELS = DIFFICULTY_OPTIONS.reduce((acc, option) => {
   return acc;
 }, {});
 
-const createEmptyOption = () => ({ text: '', is_correct: false });
+const MIN_OPTIONS = 2;
+const MAX_OPTIONS = 8;
+
+const createEmptyOption = () => ({ text: '', isCorrect: false });
 
 const createInitialForm = () => ({
   text: '',
   category: CATEGORY_OPTIONS[0].value,
   difficulty: DIFFICULTY_OPTIONS[0].value,
-  options: Array.from({ length: 4 }, () => createEmptyOption()),
+  options: Array.from({ length: 4 }, () => createEmptyOption())
 });
 
-const MIN_OPTIONS = 2;
-const MAX_OPTIONS = 8;
+const QUESTION_ERROR_MESSAGES = {
+  invalid_text: 'กรุณาใส่คำถามให้ครบถ้วน',
+  options_required: 'ต้องเพิ่มตัวเลือกอย่างน้อย 1 ข้อ',
+  missing_correct_option: 'กรุณาเลือกคำตอบที่ถูกต้องอย่างน้อย 1 ตัวเลือก'
+};
+
+const SETTINGS_ERROR_MESSAGES = {
+  invalid_start_at: 'รูปแบบเวลาเริ่มสอบไม่ถูกต้อง',
+  invalid_end_at: 'รูปแบบเวลาปิดสอบไม่ถูกต้อง',
+  end_before_start: 'เวลาปิดสอบต้องอยู่หลังเวลาเริ่มสอบ',
+  settings_unavailable: 'ไม่พบการตั้งค่าการสอบในระบบ'
+};
+
+const formatDateTimeLocal = (isoString) => {
+  if (!isoString) {
+    return '';
+  }
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const pad = (num) => String(num).padStart(2, '0');
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  ].join('T');
+};
+
+const toISOStringOrNull = (value) => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toISOString();
+};
 
 const AdminQuizBank = () => {
   const [questions, setQuestions] = useState([]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [questionsError, setQuestionsError] = useState('');
+
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-
   const [form, setForm] = useState(createInitialForm);
+  const [savingQuestion, setSavingQuestion] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validation
+  const [settings, setSettings] = useState({
+    questionCount: '10',
+    startAt: '',
+    endAt: '',
+    frequencyMonths: ''
+  });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+
+  const loadQuestions = useCallback(async () => {
+    setQuestionsLoading(true);
+    setQuestionsError('');
+    try {
+      const response = await apiRequest('/api/admin/questions');
+      const items = Array.isArray(response?.items) ? response.items : [];
+      setQuestions(items);
+    } catch (error) {
+      console.error('Failed to load questions', error);
+      setQuestions([]);
+      setQuestionsError(error?.message || 'ไม่สามารถโหลดคลังข้อสอบได้');
+    } finally {
+      setQuestionsLoading(false);
+    }
+  }, []);
+
+  const loadSettings = useCallback(async () => {
+    setSettingsError('');
+    try {
+      const response = await apiRequest('/api/admin/assessments/settings');
+      if (response) {
+        setSettings({
+          questionCount: response.questionCount ? String(response.questionCount) : '10',
+          startAt: formatDateTimeLocal(response.startAt),
+          endAt: formatDateTimeLocal(response.endAt),
+          frequencyMonths: response.frequencyMonths ? String(response.frequencyMonths) : ''
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load assessment settings', error);
+      setSettingsError(error?.message || 'ไม่สามารถโหลดการตั้งค่าการสอบได้');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadQuestions();
+    loadSettings();
+  }, [loadQuestions, loadSettings]);
+
+  const resetForm = useCallback(() => {
+    setForm(createInitialForm());
+    setEditingId(null);
+    setShowForm(false);
+    setSavingQuestion(false);
+  }, []);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!form.text.trim()) {
       alert('กรุณาใส่คำถาม');
       return;
     }
-    
-    const filledOptions = form.options.filter(o => o.text.trim());
-    if (filledOptions.length < 1) {
+
+    const sanitizedOptions = form.options
+      .map(option => ({
+        text: option.text.trim(),
+        isCorrect: option.text.trim().length > 0 && option.isCorrect
+      }))
+      .filter(option => option.text.length > 0);
+
+    if (!sanitizedOptions.length) {
       alert('ต้องมีตัวเลือกอย่างน้อย 1 ข้อ');
       return;
     }
-    
-    const hasCorrect = form.options.some(o => o.is_correct && o.text.trim());
-    if (!hasCorrect) {
+
+    if (!sanitizedOptions.some(option => option.isCorrect)) {
       alert('กรุณาเลือกคำตอบที่ถูกต้อง');
       return;
     }
 
-    const sanitizedOptions = form.options
-      .filter(o => o.text.trim())
-      .map(o => ({ text: o.text.trim(), is_correct: o.is_correct }));
-
-    const questionPayload = {
-      id: editingId || Date.now(),
+    const payload = {
       text: form.text.trim(),
       category: form.category,
       difficulty: form.difficulty,
-      options: sanitizedOptions,
+      options: sanitizedOptions
     };
 
-    if (editingId) {
-      setQuestions(prev => prev.map(q => (q.id === editingId ? questionPayload : q)));
-      setEditingId(null);
-    } else {
-      setQuestions(prev => [...prev, questionPayload]);
+    setSavingQuestion(true);
+    try {
+      const endpoint = editingId ? `/api/admin/questions/${editingId}` : '/api/admin/questions';
+      const method = editingId ? 'PUT' : 'POST';
+      const saved = await apiRequest(endpoint, { method, body: payload });
+      if (saved) {
+        setQuestions(prev => {
+          if (editingId) {
+            return prev.map(question => (question.id === saved.id ? saved : question));
+          }
+          return [saved, ...prev];
+        });
+      }
+      resetForm();
+    } catch (error) {
+      console.error('Failed to save question', error);
+      const messageKey = error?.data?.message;
+      const friendly = QUESTION_ERROR_MESSAGES[messageKey] || error?.message || 'ไม่สามารถบันทึกคำถามได้';
+      alert(friendly);
+    } finally {
+      setSavingQuestion(false);
     }
-
-    // Reset form
-    setForm(createInitialForm());
-    setShowForm(false);
   };
 
-  const handleEdit = (q) => {
-    setEditingId(q.id);
-    const existingOptions = q.options.map(opt => ({ ...opt }));
-    const paddedCount = Math.max(existingOptions.length, MIN_OPTIONS);
+  const handleEdit = (question) => {
+    setEditingId(question.id);
+    const baseCategory = CATEGORY_LABELS[question.category] ? question.category : CATEGORY_OPTIONS[0].value;
+    const baseDifficulty = DIFFICULTY_LABELS[question.difficulty] ? question.difficulty : DIFFICULTY_OPTIONS[0].value;
+    const existingOptions = Array.isArray(question.options)
+      ? question.options.map(option => ({ text: option.text, isCorrect: Boolean(option.isCorrect) }))
+      : [];
+    const desiredLength = Math.max(existingOptions.length, MIN_OPTIONS);
     const paddedOptions = [
       ...existingOptions,
-      ...Array.from({ length: Math.max(0, paddedCount - existingOptions.length) }, () => createEmptyOption()),
+      ...Array.from({ length: Math.max(0, desiredLength - existingOptions.length) }, () => createEmptyOption())
     ];
-    const categoryValue = CATEGORY_LABELS[q.category] ? q.category : CATEGORY_OPTIONS[0].value;
-    const difficultyValue = DIFFICULTY_LABELS[q.difficulty] ? q.difficulty : DIFFICULTY_OPTIONS[0].value;
+
     setForm({
-      text: q.text,
-      category: categoryValue,
-      difficulty: difficultyValue,
-      options: paddedOptions,
+      text: question.text,
+      category: baseCategory,
+      difficulty: baseDifficulty,
+      options: paddedOptions
     });
     setShowForm(true);
   };
@@ -121,7 +234,7 @@ const AdminQuizBank = () => {
       }
       return {
         ...prev,
-        options: [...prev.options, createEmptyOption()],
+        options: [...prev.options, createEmptyOption()]
       };
     });
   };
@@ -132,24 +245,77 @@ const AdminQuizBank = () => {
         alert(`ต้องมีตัวเลือกอย่างน้อย ${MIN_OPTIONS} ข้อ`);
         return prev;
       }
-      const updated = prev.options.filter((_, idx) => idx !== index);
       return {
         ...prev,
-        options: updated,
+        options: prev.options.filter((_, idx) => idx !== index)
       };
     });
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('ต้องการลบคำถามนี้?')) {
-      setQuestions(prev => prev.filter(q => q.id !== id));
+  const handleDelete = async (questionId) => {
+    if (!window.confirm('ต้องการลบคำถามนี้?')) {
+      return;
+    }
+    try {
+      await apiRequest(`/api/admin/questions/${questionId}`, { method: 'DELETE' });
+      setQuestions(prev => prev.filter(question => question.id !== questionId));
+    } catch (error) {
+      console.error('Failed to delete question', error);
+      alert(error?.message || 'ไม่สามารถลบคำถามได้');
     }
   };
 
   const handleCancel = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setForm(createInitialForm());
+    resetForm();
+  };
+
+  const handleSettingsSubmit = async (event) => {
+    event.preventDefault();
+    setSettingsError('');
+    setSettingsMessage('');
+
+    const questionCountValue = Number.parseInt(settings.questionCount, 10);
+    if (!Number.isFinite(questionCountValue) || questionCountValue < 1) {
+      setSettingsError('จำนวนคำถามต้องเป็นตัวเลขตั้งแต่ 1 ข้อขึ้นไป');
+      return;
+    }
+
+    let frequencyValue = null;
+    if (settings.frequencyMonths) {
+      frequencyValue = Number.parseInt(settings.frequencyMonths, 10);
+      if (!Number.isFinite(frequencyValue) || frequencyValue < 1) {
+        setSettingsError('ความถี่การสอบต้องเป็นจำนวนเดือนตั้งแต่ 1 เดือนขึ้นไป');
+        return;
+      }
+    }
+
+    const payload = {
+      questionCount: questionCountValue,
+      startAt: toISOStringOrNull(settings.startAt),
+      endAt: toISOStringOrNull(settings.endAt),
+      frequencyMonths: frequencyValue
+    };
+
+    setSettingsSaving(true);
+    try {
+      const updated = await apiRequest('/api/admin/assessments/settings', { method: 'PUT', body: payload });
+      if (updated) {
+        setSettings({
+          questionCount: updated.questionCount ? String(updated.questionCount) : settings.questionCount,
+          startAt: formatDateTimeLocal(updated.startAt),
+          endAt: formatDateTimeLocal(updated.endAt),
+          frequencyMonths: updated.frequencyMonths ? String(updated.frequencyMonths) : ''
+        });
+      }
+      setSettingsMessage('บันทึกการตั้งค่าเรียบร้อย');
+    } catch (error) {
+      console.error('Failed to update assessment settings', error);
+      const messageKey = error?.data?.message;
+      const friendly = SETTINGS_ERROR_MESSAGES[messageKey] || error?.message || 'ไม่สามารถบันทึกการตั้งค่าได้';
+      setSettingsError(friendly);
+    } finally {
+      setSettingsSaving(false);
+    }
   };
 
   return (
@@ -164,6 +330,65 @@ const AdminQuizBank = () => {
           )}
         </div>
 
+        <div className="quiz-form-card" style={{ marginBottom: '2rem' }}>
+          <h3>ตั้งค่าการสอบประเมิน</h3>
+          <form onSubmit={handleSettingsSubmit} className="quiz-form">
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="setting-question-count">จำนวนคำถามต่อรอบ *</label>
+                <input
+                  id="setting-question-count"
+                  type="number"
+                  min="1"
+                  value={settings.questionCount}
+                  onChange={(event) => setSettings(prev => ({ ...prev, questionCount: event.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="setting-frequency-months">ความถี่การสอบ (เดือน)</label>
+                <input
+                  id="setting-frequency-months"
+                  type="number"
+                  min="1"
+                  placeholder="เช่น 2 หมายถึงทุก 2 เดือน"
+                  value={settings.frequencyMonths}
+                  onChange={(event) => setSettings(prev => ({ ...prev, frequencyMonths: event.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="setting-start">เวลาเริ่มเปิดสอบ</label>
+                <input
+                  id="setting-start"
+                  type="datetime-local"
+                  value={settings.startAt}
+                  onChange={(event) => setSettings(prev => ({ ...prev, startAt: event.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="setting-end">เวลาปิดสอบ</label>
+                <input
+                  id="setting-end"
+                  type="datetime-local"
+                  value={settings.endAt}
+                  onChange={(event) => setSettings(prev => ({ ...prev, endAt: event.target.value }))}
+                />
+              </div>
+            </div>
+
+            {settingsError && <div className="form-feedback error">{settingsError}</div>}
+            {settingsMessage && <div className="form-feedback success">{settingsMessage}</div>}
+
+            <div className="form-actions">
+              <button type="submit" className="pill primary" disabled={settingsSaving}>
+                {settingsSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+              </button>
+            </div>
+          </form>
+        </div>
+
         {showForm && (
           <div className="quiz-form-card">
             <h3>{editingId ? 'แก้ไขคำถาม' : 'เพิ่มคำถามใหม่'}</h3>
@@ -176,7 +401,7 @@ const AdminQuizBank = () => {
                   <textarea
                     id="question-text"
                     value={form.text}
-                    onChange={(e) => setForm({ ...form, text: e.target.value })}
+                    onChange={(event) => setForm({ ...form, text: event.target.value })}
                     placeholder="พิมพ์คำถามที่นี่..."
                     rows="4"
                     required
@@ -190,7 +415,7 @@ const AdminQuizBank = () => {
                   <select
                     id="question-category"
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    onChange={(event) => setForm({ ...form, category: event.target.value })}
                   >
                     {CATEGORY_OPTIONS.map(option => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -202,7 +427,7 @@ const AdminQuizBank = () => {
                   <select
                     id="question-difficulty"
                     value={form.difficulty}
-                    onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
+                    onChange={(event) => setForm({ ...form, difficulty: event.target.value })}
                   >
                     {DIFFICULTY_OPTIONS.map(option => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -218,33 +443,33 @@ const AdminQuizBank = () => {
                 </div>
                 <div className="form-group">
                   <div className="options-grid">
-                    {form.options.map((opt, idx) => (
-                      <div key={idx} className="option-row">
+                    {form.options.map((option, index) => (
+                      <div key={index} className="option-row">
                         <input
                           type="checkbox"
-                          checked={opt.is_correct}
-                          onChange={(e) => {
-                            const newOpts = [...form.options];
-                            newOpts[idx].is_correct = e.target.checked;
-                            setForm({ ...form, options: newOpts });
+                          checked={option.isCorrect}
+                          onChange={(event) => {
+                            const next = [...form.options];
+                            next[index].isCorrect = event.target.checked;
+                            setForm({ ...form, options: next });
                           }}
                           title="คำตอบที่ถูกต้อง"
                         />
                         <input
                           type="text"
-                          value={opt.text}
-                          onChange={(e) => {
-                            const newOpts = [...form.options];
-                            newOpts[idx].text = e.target.value;
-                            setForm({ ...form, options: newOpts });
+                          value={option.text}
+                          onChange={(event) => {
+                            const next = [...form.options];
+                            next[index].text = event.target.value;
+                            setForm({ ...form, options: next });
                           }}
-                          placeholder={`ตัวเลือกที่ ${idx + 1}`}
+                          placeholder={`ตัวเลือกที่ ${index + 1}`}
                         />
                         {form.options.length > MIN_OPTIONS && (
                           <button
                             type="button"
                             className="btn-icon btn-icon--remove"
-                            onClick={() => handleRemoveOption(idx)}
+                            onClick={() => handleRemoveOption(index)}
                             title="ลบตัวเลือก"
                           >
                             ×
@@ -262,8 +487,8 @@ const AdminQuizBank = () => {
               </div>
 
               <div className="form-actions">
-                <button type="submit" className="pill primary">
-                  {editingId ? 'บันทึกการแก้ไข' : 'เพิ่มคำถาม'}
+                <button type="submit" className="pill primary" disabled={savingQuestion}>
+                  {savingQuestion ? 'กำลังบันทึก...' : editingId ? 'บันทึกการแก้ไข' : 'เพิ่มคำถาม'}
                 </button>
                 <button type="button" className="pill" onClick={handleCancel}>
                   ยกเลิก
@@ -274,35 +499,43 @@ const AdminQuizBank = () => {
         )}
 
         <div className="quiz-list">
-          {questions.length === 0 && !showForm && (
+          {questionsLoading && (
+            <div className="empty-state">กำลังโหลดข้อมูล...</div>
+          )}
+
+          {!questionsLoading && questionsError && (
+            <div className="empty-state">{questionsError}</div>
+          )}
+
+          {!questionsLoading && !questionsError && questions.length === 0 && !showForm && (
             <div className="empty-state">
               <p>ยังไม่มีคำถามในคลัง</p>
               <p>คลิก "เพิ่มคำถามใหม่" เพื่อเริ่มต้น</p>
             </div>
           )}
 
-          {questions.map((q) => (
-            <div key={q.id} className="quiz-item">
+          {!questionsLoading && !questionsError && questions.map(question => (
+            <div key={question.id} className="quiz-item">
               <div className="quiz-item-header">
                 <div className="quiz-badges">
-                  <span className={`badge cat-${q.category}`}>{CATEGORY_LABELS[q.category] || q.category}</span>
-                  <span className={`badge diff-${q.difficulty}`}>{DIFFICULTY_LABELS[q.difficulty] || q.difficulty}</span>
+                  <span className={`badge cat-${question.category}`}>{CATEGORY_LABELS[question.category] || question.category}</span>
+                  <span className={`badge diff-${question.difficulty}`}>{DIFFICULTY_LABELS[question.difficulty] || question.difficulty}</span>
                 </div>
                 <div className="quiz-actions">
-                  <button type="button" className="btn-icon" onClick={() => handleEdit(q)} title="แก้ไข" aria-label="แก้ไขคำถาม">
-                    <i class='bx  bx-edit'></i> 
+                  <button type="button" className="btn-icon" onClick={() => handleEdit(question)} title="แก้ไข" aria-label="แก้ไขคำถาม">
+                    <i className="bx bx-edit" />
                   </button>
-                  <button type="button" className="btn-icon" onClick={() => handleDelete(q.id)} title="ลบ" aria-label="ลบคำถาม">
-                    <i class='bx  bx-trash-alt'></i> 
+                  <button type="button" className="btn-icon" onClick={() => handleDelete(question.id)} title="ลบ" aria-label="ลบคำถาม">
+                    <i className="bx bx-trash-alt" />
                   </button>
                 </div>
               </div>
-              <div className="quiz-question">{q.text}</div>
+              <div className="quiz-question">{question.text}</div>
               <div className="quiz-options">
-                {q.options.map((opt, idx) => (
-                  <div key={idx} className={`quiz-option ${opt.is_correct ? 'correct' : ''}`}>
-                    {opt.is_correct && <span className="check-mark">✓</span>}
-                    {opt.text}
+                {Array.isArray(question.options) && question.options.map((option, index) => (
+                  <div key={index} className={`quiz-option ${option.isCorrect ? 'correct' : ''}`}>
+                    {option.isCorrect && <span className="check-mark">✓</span>}
+                    {option.text}
                   </div>
                 ))}
               </div>

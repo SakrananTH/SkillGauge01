@@ -133,6 +133,17 @@ CREATE TABLE IF NOT EXISTS assessment_answers (
   CONSTRAINT fk_assessment_answers_option FOREIGN KEY (chosen_option_id) REFERENCES question_options(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS assessment_settings (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  question_count INT UNSIGNED NOT NULL DEFAULT 10,
+  start_at DATETIME(6) NULL,
+  end_at DATETIME(6) NULL,
+  frequency_months INT UNSIGNED NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Worker management tables
 CREATE TABLE IF NOT EXISTS workers (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,

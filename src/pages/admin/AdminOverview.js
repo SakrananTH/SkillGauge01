@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminOverview.css';
+import { apiRequest } from '../../utils/api';
 
 const AdminOverview = ({ setTab }) => {
   const navigate = useNavigate();
@@ -13,51 +14,117 @@ const AdminOverview = ({ setTab }) => {
   ]);
 
   const [recentActivities, setRecentActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [activitiesError, setActivitiesError] = useState('');
 
   useEffect(() => {
-    // Load workers from localStorage
-    const workers = JSON.parse(localStorage.getItem('admin_workers') || '[]');
+    let active = true;
 
-    // Calculate Stats
-    const total = workers.length;
-    const active = workers.filter(w => w.status === 'active' || w.status === 'fulltime').length;
-    // Assuming 'probation' might need doc check
-    const pending = workers.filter(w => w.status === 'probation').length;
+    const loadOverview = async () => {
+      try {
+        setActivitiesLoading(true);
+        setActivitiesError('');
 
-    // Update Stats
-    setStats([
-      { label: 'พนักงานทั้งหมด', value: total, unit: 'คน', change: '-', trend: 'neutral', color: 'blue' },
-      { label: 'รอตรวจสอบเอกสาร', value: pending, unit: 'รายการ', change: '-', trend: 'neutral', color: 'orange' },
-      { label: 'แบบทดสอบที่ทำวันนี้', value: 0, unit: 'ครั้ง', change: '-', trend: 'neutral', color: 'green' }, // No data yet
-      { label: 'ผู้ใช้งาน Active', value: active, unit: 'คน', change: '-', trend: 'neutral', color: 'purple' },
-    ]);
+        const response = await apiRequest('/api/admin/workers');
+        const items = Array.isArray(response?.items)
+          ? response.items
+          : Array.isArray(response)
+            ? response
+            : [];
 
-    // Generate Activities from Workers (Newest first)
-    const activities = workers
-      .sort((a, b) => b.id - a.id) // Sort by timestamp desc
-      .slice(0, 5) // Take top 5
-      .map(w => {
-        const timeDiff = Date.now() - w.id;
-        let timeString = 'เมื่อสักครู่';
-        const minutes = Math.floor(timeDiff / 60000);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
+        if (!active) {
+          return;
+        }
 
-        if (days > 0) timeString = `${days} วันที่แล้ว`;
-        else if (hours > 0) timeString = `${hours} ชั่วโมงที่แล้ว`;
-        else if (minutes > 0) timeString = `${minutes} นาทีที่แล้ว`;
+        const totalWorkers = items.length;
+        const pendingWorkers = items.filter(worker => worker.status === 'probation').length;
+        const activeWorkers = items.filter(worker => worker.status === 'active').length;
 
-        return {
-          id: w.id,
-          user: w.name,
-          action: 'ลงทะเบียนพนักงานใหม่',
-          time: timeString,
-          type: 'register'
+        setStats([
+          { label: 'พนักงานทั้งหมด', value: totalWorkers, unit: 'คน', change: '-', trend: 'neutral', color: 'blue' },
+          { label: 'รอตรวจสอบเอกสาร', value: pendingWorkers, unit: 'รายการ', change: '-', trend: 'neutral', color: 'orange' },
+          { label: 'แบบทดสอบที่ทำวันนี้', value: 0, unit: 'ครั้ง', change: '-', trend: 'neutral', color: 'green' },
+          { label: 'ผู้ใช้งาน Active', value: activeWorkers, unit: 'คน', change: '-', trend: 'neutral', color: 'purple' },
+        ]);
+
+        const toDate = value => {
+          if (!value) return null;
+          const date = new Date(value);
+          return Number.isNaN(date.getTime()) ? null : date;
         };
-      });
 
-    setRecentActivities(activities);
+        const formatTimeAgo = date => {
+          if (!(date instanceof Date)) {
+            return 'เมื่อสักครู่';
+          }
+          const diffMs = Date.now() - date.getTime();
+          if (diffMs <= 0) {
+            return 'เมื่อสักครู่';
+          }
+          const minutes = Math.floor(diffMs / 60000);
+          const hours = Math.floor(minutes / 60);
+          const days = Math.floor(hours / 24);
 
+          if (days > 0) {
+            return `${days} วันที่แล้ว`;
+          }
+          if (hours > 0) {
+            return `${hours} ชั่วโมงที่แล้ว`;
+          }
+          if (minutes > 0) {
+            return `${minutes} นาทีที่แล้ว`;
+          }
+          return 'เมื่อสักครู่';
+        };
+
+        const activities = items
+          .map(worker => {
+            const timestamps = [
+              worker.fullData?.meta?.createdAt,
+              worker.fullData?.meta?.updatedAt,
+              worker.startDate,
+              worker.fullData?.meta?.lastUpdated
+            ].filter(Boolean);
+            const parsedDate = timestamps.length ? toDate(timestamps[0]) : null;
+            return {
+              id: worker.id,
+              user: worker.name || 'ไม่ระบุ',
+              action: 'ลงทะเบียนพนักงานใหม่',
+              type: 'register',
+              date: parsedDate || null
+            };
+          })
+          .sort((a, b) => {
+            const timeA = a.date ? a.date.getTime() : 0;
+            const timeB = b.date ? b.date.getTime() : 0;
+            return timeB - timeA;
+          })
+          .slice(0, 5)
+          .map(activity => ({
+            ...activity,
+            time: formatTimeAgo(activity.date)
+          }));
+
+        setRecentActivities(activities);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        console.error('Failed to load overview data', error);
+        setActivitiesError(error?.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
+        setRecentActivities([]);
+      } finally {
+        if (active) {
+          setActivitiesLoading(false);
+        }
+      }
+    };
+
+    loadOverview();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -100,7 +167,11 @@ const AdminOverview = ({ setTab }) => {
             <button className="view-all-btn">ดูทั้งหมด</button>
           </div>
           <div className="activity-list">
-            {recentActivities.length === 0 ? (
+            {activitiesLoading ? (
+              <div className="empty-state">กำลังโหลดข้อมูล...</div>
+            ) : activitiesError ? (
+              <div className="empty-state">{activitiesError}</div>
+            ) : recentActivities.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-icon">📭</span>
                 <p>ยังไม่มีกิจกรรมล่าสุด</p>

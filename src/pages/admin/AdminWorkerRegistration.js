@@ -93,8 +93,7 @@ const STEP_FIELD_PATHS = {
   ],
   credentials: [
     ['credentials', 'email'],
-    ['credentials', 'password'],
-    ['credentials', 'confirmPassword']
+    ['credentials', 'password']
   ],
   review: []
 };
@@ -217,8 +216,7 @@ const buildInitialFormState = () => ({
   },
   credentials: {
     email: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   }
 });
 
@@ -264,17 +262,15 @@ const AdminWorkerRegistration = () => {
       ...prev,
       credentials: {
         ...prev.credentials,
-        password: generated,
-        confirmPassword: generated
+        password: generated
       }
     }));
     setErrors(prev => {
-      if (!prev.password && !prev.confirmPassword) {
+      if (!prev.password) {
         return prev;
       }
       const next = { ...prev };
       delete next.password;
-      delete next.confirmPassword;
       return next;
     });
   };
@@ -285,6 +281,8 @@ const AdminWorkerRegistration = () => {
       if (fullData) {
         const fallbackEmail = editingWorker.email;
         const credentialData = fullData.credentials || {};
+        const existingPassword = credentialData.passwordHash || credentialData.password || '';
+
         setForm(prev => ({
           personal: { ...prev.personal, ...(fullData.personal || {}) },
           identity: { ...prev.identity, ...(fullData.identity || {}) },
@@ -296,8 +294,7 @@ const AdminWorkerRegistration = () => {
               credentialData.email ||
               fallbackEmail ||
               prev.credentials.email,
-            password: '',
-            confirmPassword: ''
+            password: existingPassword
           }
         }));
       }
@@ -629,7 +626,6 @@ const AdminWorkerRegistration = () => {
   const validateCredentials = () => {
     const emailValue = form.credentials.email.trim();
     const passwordValue = form.credentials.password;
-    const confirmValue = form.credentials.confirmPassword;
     const validationErrors = {};
 
     if (!emailValue) {
@@ -638,7 +634,7 @@ const AdminWorkerRegistration = () => {
       validationErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
     }
 
-    const requirePassword = !isEditing || Boolean(passwordValue || confirmValue);
+    const requirePassword = !isEditing || Boolean(passwordValue);
 
     if (requirePassword) {
       if (!passwordValue) {
@@ -646,20 +642,13 @@ const AdminWorkerRegistration = () => {
       } else if (passwordValue.length < 8) {
         validationErrors.password = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
       }
-
-      if (!confirmValue) {
-        validationErrors.confirmPassword = 'กรุณายืนยันรหัสผ่าน';
-      } else if (passwordValue !== confirmValue) {
-        validationErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
-      }
     }
 
     return {
       errors: validationErrors,
       values: {
         email: emailValue,
-        password: requirePassword ? passwordValue : undefined,
-        confirmPassword: requirePassword ? confirmValue : undefined
+        password: requirePassword ? passwordValue : undefined
       },
       requirePassword
     };
@@ -904,7 +893,7 @@ const AdminWorkerRegistration = () => {
         }
         setErrors(prev => {
           const next = { ...prev };
-          ['email', 'password', 'confirmPassword'].forEach(key => {
+          ['email', 'password'].forEach(key => {
             if (!credentialErrors[key] && next[key]) {
               delete next[key];
             }
@@ -1472,19 +1461,6 @@ const AdminWorkerRegistration = () => {
                   {errors.password && <span className="error-message">{errors.password}</span>}
                   <span className="help-text">รหัสผ่านอย่างน้อย 8 ตัวอักษร แนะนำให้ผสมตัวเลขและอักขระพิเศษ</span>
                 </div>
-                <div className="field">
-                  <label>ยืนยันรหัสผ่าน</label>
-                  <div className="password-input">
-                    <input
-                      type="text"
-                      value={form.credentials.confirmPassword}
-                      onChange={handleInputChange('credentials', 'confirmPassword')}
-                      placeholder="********"
-                      className={errors.confirmPassword ? 'error' : ''}
-                    />
-                  </div>
-                  {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
-                </div>
               </div>
             </div>
           </div>
@@ -1498,30 +1474,38 @@ const AdminWorkerRegistration = () => {
             </section>
 
             <div className="review-grid">
-              {reviewSections.map(section => (
-                <div key={section.key} className="review-card">
-                  <div className="review-card-header">
-                    <h4 className="review-card-title">{section.title}</h4>
-                    {!isViewOnly && (
-                      <button
-                        type="button"
-                        className="review-card-edit"
-                        onClick={() => handleStepSelect(section.stepIndex)}
-                      >
-                        แก้ไข
-                      </button>
-                    )}
+              <div className="review-unified-card">
+                <div className="review-unified-header">
+                  <div className="review-unified-heading">
+                    <h4>ข้อมูลการสมัครทั้งหมด</h4>
+                    <p>ทบทวนรายละเอียดก่อนยืนยัน ระบบสามารถย้อนกลับไปแก้ไขได้ทุกขั้นตอน</p>
                   </div>
-                  <dl className="review-list">
-                    {section.items.map(item => (
-                      <div key={`${section.key}-${item.label}`} className="review-list-row">
-                        <dt>{item.label}</dt>
-                        <dd>{item.value || 'ไม่ระบุ'}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  {!isViewOnly && (
+                    <button
+                      type="button"
+                      className="review-unified-edit"
+                      onClick={() => handleStepSelect(0)}
+                    >
+                      แก้ไข
+                    </button>
+                  )}
                 </div>
-              ))}
+                <div className="review-unified-sections">
+                  {reviewSections.map(section => (
+                    <div key={section.key} className="review-section">
+                      <h5 className="review-section-title">{section.title}</h5>
+                      <dl className="review-list">
+                        {section.items.map(item => (
+                          <div key={`${section.key}-${item.label}`} className="review-list-row">
+                            <dt>{item.label}</dt>
+                            <dd>{item.value || 'ไม่ระบุ'}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         );

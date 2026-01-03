@@ -63,6 +63,10 @@
 /* Eye toggle for password */
 .input-with-eye { position: relative; }
 .input-with-eye .login-input { padding-right: 2.5rem; }
+.input-with-eye .login-input::-ms-reveal,
+.input-with-eye .login-input::-ms-clear {
+  display: none;
+}
 .input-with-eye .eye-btn {
   position: absolute;
   right: 0.5rem;
