@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mysql from 'mysql2/promise';
 import { randomUUID } from 'crypto';
@@ -8,7 +9,6 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
 
 const {
   PORT = 4000,
@@ -19,13 +19,8 @@ const {
   MYSQL_USER = 'root',
   MYSQL_PASSWORD = 'rootpassword',
   JWT_SECRET = 'dev_secret_change_me',
-  JWT_EXPIRES_IN = '12h',
-  BCRYPT_ROUNDS = '10'
+  JWT_EXPIRES_IN = '12h'
 } = process.env;
-
-const PASSWORD_WORK_FACTOR = Number.isFinite(Number(BCRYPT_ROUNDS)) && Number(BCRYPT_ROUNDS) > 0
-  ? Number(BCRYPT_ROUNDS)
-  : 10;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -256,26 +251,6 @@ function normalizePhoneTH(input) {
   return raw;
 }
 
-async function hashPassword(rawPassword) {
-  const value = String(rawPassword ?? '').trim();
-  if (!value) return '';
-  return bcrypt.hash(value, PASSWORD_WORK_FACTOR);
-}
-
-async function verifyPassword(candidate, stored) {
-  const plain = String(candidate ?? '');
-  const encoded = String(stored ?? '');
-  if (!plain || !encoded) return false;
-  if (/^\$2[aby]\$/.test(encoded)) {
-    try {
-      return await bcrypt.compare(plain, encoded);
-    } catch {
-      return false;
-    }
-  }
-  return plain === encoded;
-}
-
 const uuidSchema = z.string().uuid();
 
 async function execute(sql, params = [], connection) {
@@ -337,35 +312,6 @@ const TRADE_LABELS = {
   other: 'อื่นๆ'
 };
 
-const questionOptionSchema = z.object({
-  text: z.string().min(1).max(1000),
-  isCorrect: z.boolean()
-});
-
-const questionUpsertSchema = z.object({
-  text: z.string().min(1).max(5000),
-  category: z.string().max(120).optional(),
-  difficulty: z.string().max(60).optional(),
-  version: z.string().max(60).optional(),
-  active: z.boolean().optional(),
-  options: z.array(questionOptionSchema).min(1).max(8)
-}).superRefine((data, ctx) => {
-  if (!data.options.some(option => option.isCorrect)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'at_least_one_correct_option',
-      path: ['options']
-    });
-  }
-});
-
-const assessmentSettingsSchema = z.object({
-  questionCount: z.coerce.number().int().min(1).max(200),
-  startAt: z.union([z.string().min(1), z.null()]).optional(),
-  endAt: z.union([z.string().min(1), z.null()]).optional(),
-  frequencyMonths: z.union([z.coerce.number().int().min(1).max(24), z.null()]).optional()
-});
-
 const ADMIN_BYPASS = {
   id: '11111111-1111-1111-1111-111111111111',
   phone: '0863125891',
@@ -412,6 +358,17 @@ function parseDateValue(value) {
   return date.toISOString().slice(0, 10);
 }
 
+function parseDateTimeInput(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date;
+}
+
 function calculateAgeFromDate(dateString) {
   if (!dateString) return null;
   const birth = new Date(dateString);
@@ -444,362 +401,6 @@ function parseAgeValue(ageInput, birthDate) {
   if (numeric > 120) return 120;
   return Math.round(numeric);
 }
-
-function sanitizeQuestionPayload(payload) {
-  const text = String(payload.text ?? '').trim();
-  const category = toNullableString(payload.category);
-  const difficulty = toNullableString(payload.difficulty);
-  const version = toNullableString(payload.version);
-  const active = payload.active !== undefined ? Boolean(payload.active) : true;
-  const options = Array.isArray(payload.options)
-    ? payload.options
-        .map(option => ({
-          text: String(option.text ?? '').trim(),
-          isCorrect: Boolean(option.isCorrect)
-        }))
-        .filter(option => option.text)
-    : [];
-
-  return { text, category, difficulty, version, active, options };
-}
-
-function mapQuestionRows(rows) {
-  const grouped = new Map();
-
-  for (const row of rows) {
-    if (!grouped.has(row.id)) {
-      grouped.set(row.id, {
-        id: row.id,
-        text: row.text,
-        category: toNullableString(row.category),
-        difficulty: toNullableString(row.difficulty),
-        version: toNullableString(row.version),
-        active: Boolean(row.active),
-        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : toNullableString(row.created_at),
-        updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : toNullableString(row.updated_at),
-        options: []
-      });
-    }
-
-    const record = grouped.get(row.id);
-    if (row.option_id) {
-      record.options.push({
-        id: row.option_id,
-        text: row.option_text,
-        isCorrect: Boolean(row.is_correct)
-      });
-    }
-  }
-
-  return Array.from(grouped.values());
-}
-
-async function fetchQuestionList(connection) {
-  const rows = await query(
-        `SELECT q.id, q.text, q.category, q.difficulty, q.version, q.active, q.created_at, q.updated_at,
-          o.id AS option_id, o.text AS option_text, o.is_correct, o.created_at AS option_created_at
-     FROM questions q
-     LEFT JOIN question_options o ON o.question_id = q.id
-     ORDER BY q.created_at DESC, q.id DESC, o.created_at ASC, o.id ASC`,
-    [],
-    connection
-  );
-  return mapQuestionRows(rows);
-}
-
-async function fetchQuestionById(questionId, connection) {
-  const rows = await query(
-        `SELECT q.id, q.text, q.category, q.difficulty, q.version, q.active, q.created_at, q.updated_at,
-          o.id AS option_id, o.text AS option_text, o.is_correct, o.created_at AS option_created_at
-     FROM questions q
-     LEFT JOIN question_options o ON o.question_id = q.id
-     WHERE q.id = ?
-     ORDER BY o.created_at ASC, o.id ASC`,
-    [questionId],
-    connection
-  );
-  const [question] = mapQuestionRows(rows);
-  return question ?? null;
-}
-
-function parseDateTimeInput(value) {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date;
-}
-
-function mapAssessmentSettingsRow(row) {
-  if (!row) {
-    return null;
-  }
-  return {
-    id: row.id,
-    questionCount: Number(row.question_count) || 0,
-    startAt: row.start_at instanceof Date ? row.start_at.toISOString() : null,
-    endAt: row.end_at instanceof Date ? row.end_at.toISOString() : null,
-    frequencyMonths: row.frequency_months !== null && row.frequency_months !== undefined
-      ? Number(row.frequency_months)
-      : null,
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : null,
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : null
-  };
-}
-
-async function getAssessmentSettings(connection) {
-  const existing = await queryOne(
-    'SELECT id, question_count, start_at, end_at, frequency_months, created_at, updated_at FROM assessment_settings ORDER BY id ASC LIMIT 1',
-    [],
-    connection
-  );
-
-  if (existing) {
-    return mapAssessmentSettingsRow(existing);
-  }
-
-  await execute(
-    'INSERT INTO assessment_settings (question_count, start_at, end_at, frequency_months) VALUES (?, ?, ?, ?)',
-    [10, null, null, null],
-    connection
-  );
-
-  const created = await queryOne(
-    'SELECT id, question_count, start_at, end_at, frequency_months, created_at, updated_at FROM assessment_settings ORDER BY id ASC LIMIT 1',
-    [],
-    connection
-  );
-  return mapAssessmentSettingsRow(created);
-}
-
-// ---------------------------------------------------------------------------
-// Question management
-// ---------------------------------------------------------------------------
-
-app.get('/api/admin/questions', async (_req, res) => {
-  try {
-    const items = await fetchQuestionList();
-    res.json({ items });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.get('/api/admin/questions/:id', async (req, res) => {
-  try {
-    const questionId = req.params.id;
-    if (!uuidSchema.safeParse(questionId).success) {
-      return res.status(400).json({ message: 'invalid_id' });
-    }
-
-    const question = await fetchQuestionById(questionId);
-    if (!question) {
-      return res.status(404).json({ message: 'not_found' });
-    }
-
-    res.json(question);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.post('/api/admin/questions', async (req, res) => {
-  try {
-    const payload = questionUpsertSchema.parse(req.body ?? {});
-    const sanitized = sanitizeQuestionPayload(payload);
-
-    if (!sanitized.text) {
-      return res.status(400).json({ message: 'invalid_text' });
-    }
-    if (!sanitized.options.length) {
-      return res.status(400).json({ message: 'options_required' });
-    }
-    if (!sanitized.options.some(option => option.isCorrect)) {
-      return res.status(400).json({ message: 'missing_correct_option' });
-    }
-
-    const questionId = randomUUID();
-
-    await withTransaction(async connection => {
-      await execute(
-        'INSERT INTO questions (id, text, category, difficulty, version, active) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          questionId,
-          sanitized.text,
-          sanitized.category,
-          sanitized.difficulty,
-          sanitized.version,
-          sanitized.active ? 1 : 0
-        ],
-        connection
-      );
-
-      for (const option of sanitized.options) {
-        await execute(
-          'INSERT INTO question_options (id, question_id, text, is_correct) VALUES (?, ?, ?, ?)',
-          [randomUUID(), questionId, option.text, option.isCorrect ? 1 : 0],
-          connection
-        );
-      }
-    });
-
-    const created = await fetchQuestionById(questionId);
-    res.status(201).json(created);
-  } catch (error) {
-    if (error?.issues) {
-      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
-    }
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.put('/api/admin/questions/:id', async (req, res) => {
-  try {
-    const questionId = req.params.id;
-    if (!uuidSchema.safeParse(questionId).success) {
-      return res.status(400).json({ message: 'invalid_id' });
-    }
-
-    const payload = questionUpsertSchema.parse(req.body ?? {});
-    const sanitized = sanitizeQuestionPayload(payload);
-
-    if (!sanitized.text) {
-      return res.status(400).json({ message: 'invalid_text' });
-    }
-    if (!sanitized.options.length) {
-      return res.status(400).json({ message: 'options_required' });
-    }
-    if (!sanitized.options.some(option => option.isCorrect)) {
-      return res.status(400).json({ message: 'missing_correct_option' });
-    }
-
-    const exists = await queryOne('SELECT id FROM questions WHERE id = ? LIMIT 1', [questionId]);
-    if (!exists) {
-      return res.status(404).json({ message: 'not_found' });
-    }
-
-    await withTransaction(async connection => {
-      await execute(
-        'UPDATE questions SET text = ?, category = ?, difficulty = ?, version = ?, active = ?, updated_at = NOW(6) WHERE id = ?',
-        [
-          sanitized.text,
-          sanitized.category,
-          sanitized.difficulty,
-          sanitized.version,
-          sanitized.active ? 1 : 0,
-          questionId
-        ],
-        connection
-      );
-
-      await execute('DELETE FROM question_options WHERE question_id = ?', [questionId], connection);
-
-      for (const option of sanitized.options) {
-        await execute(
-          'INSERT INTO question_options (id, question_id, text, is_correct) VALUES (?, ?, ?, ?)',
-          [randomUUID(), questionId, option.text, option.isCorrect ? 1 : 0],
-          connection
-        );
-      }
-    });
-
-    const updated = await fetchQuestionById(questionId);
-    res.json(updated);
-  } catch (error) {
-    if (error?.issues) {
-      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
-    }
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.delete('/api/admin/questions/:id', async (req, res) => {
-  try {
-    const questionId = req.params.id;
-    if (!uuidSchema.safeParse(questionId).success) {
-      return res.status(400).json({ message: 'invalid_id' });
-    }
-
-    const result = await execute('DELETE FROM questions WHERE id = ?', [questionId]);
-    if (!result.affectedRows) {
-      return res.status(404).json({ message: 'not_found' });
-    }
-
-    res.status(204).send();
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Assessment settings
-// ---------------------------------------------------------------------------
-
-app.get('/api/admin/assessments/settings', async (_req, res) => {
-  try {
-    const settings = await getAssessmentSettings();
-    res.json(settings);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.put('/api/admin/assessments/settings', async (req, res) => {
-  try {
-    const payload = assessmentSettingsSchema.parse(req.body ?? {});
-
-    const sanitizedQuestionCount = payload.questionCount;
-    const startDate = parseDateTimeInput(payload.startAt ?? null);
-    const endDate = parseDateTimeInput(payload.endAt ?? null);
-    const frequencyMonths = payload.frequencyMonths ?? null;
-
-    if (payload.startAt && !startDate) {
-      return res.status(400).json({ message: 'invalid_start_at' });
-    }
-    if (payload.endAt && !endDate) {
-      return res.status(400).json({ message: 'invalid_end_at' });
-    }
-    if (startDate && endDate && endDate <= startDate) {
-      return res.status(400).json({ message: 'end_before_start' });
-    }
-
-    const settings = await getAssessmentSettings();
-    if (!settings) {
-      return res.status(500).json({ message: 'settings_unavailable' });
-    }
-
-    await execute(
-      `UPDATE assessment_settings
-       SET question_count = ?, start_at = ?, end_at = ?, frequency_months = ?, updated_at = NOW(6)
-       WHERE id = ?`,
-      [
-        sanitizedQuestionCount,
-        startDate,
-        endDate,
-        frequencyMonths,
-        settings.id
-      ]
-    );
-
-    const updated = await getAssessmentSettings();
-    res.json(updated);
-  } catch (error) {
-    if (error?.issues) {
-      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
-    }
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 let workerTableColumns = new Set();
 let workerAccountColumns = new Set();
@@ -1078,7 +679,7 @@ async function fetchUserRoles(userId, connection) {
 async function replaceUserRoles(userId, roles, connection) {
   await execute('DELETE FROM user_roles WHERE user_id = ?', [userId], connection);
   if (!roles || roles.length === 0) return;
-  const roleRows = await query('SELECT id FROM roles WHERE key IN (?)', [roles], connection);
+  const roleRows = await query('SELECT id FROM roles WHERE `key` IN (?)', [roles], connection);
   for (const role of roleRows) {
     await execute('INSERT IGNORE INTO user_roles(user_id, role_id) VALUES (?, ?)', [userId, role.id], connection);
   }
@@ -1156,8 +757,6 @@ app.post('/api/auth/signup', async (req, res) => {
     const payload = signupSchema.parse(req.body ?? {});
     const normalizedPhone = normalizePhoneTH(payload.phone);
     const normalizedEmail = payload.email ? payload.email.toLowerCase() : null;
-    const passwordHash = await hashPassword(payload.password);
-    if (!passwordHash) return res.status(500).json({ message: 'password_hash_failed' });
 
     const created = await withTransaction(async connection => {
       const duplicate = normalizedEmail
@@ -1173,13 +772,15 @@ app.post('/api/auth/signup', async (req, res) => {
       }
 
       const userId = randomUUID();
+      const passwordHash = await bcrypt.hash(payload.password, 10);
+
       await execute(
         'INSERT INTO users (id, full_name, phone, email, password_hash, status) VALUES (?, ?, ?, ?, ?, ?)',
         [userId, payload.full_name, normalizedPhone, normalizedEmail, passwordHash, 'active'],
         connection
       );
 
-      const workerRole = await queryOne('SELECT id FROM roles WHERE key = ? LIMIT 1', ['worker'], connection);
+      const workerRole = await queryOne('SELECT id FROM roles WHERE `key` = ? LIMIT 1', ['worker'], connection);
       if (workerRole) {
         await execute(
           'INSERT IGNORE INTO user_roles(user_id, role_id) VALUES (?, ?)',
@@ -1279,11 +880,8 @@ app.post('/api/auth/login', async (req, res) => {
 
     if (!user) return res.status(401).json({ message: 'invalid_credentials' });
 
-    const storedPassword = user.password_hash ?? '';
-    const passwordOk = await verifyPassword(parsed.password, storedPassword);
-    if (!passwordOk) {
-      return res.status(401).json({ message: 'invalid_credentials' });
-    }
+    const isMatch = await bcrypt.compare(parsed.password, user.password_hash ?? '');
+    if (!isMatch) return res.status(401).json({ message: 'invalid_credentials' });
 
     const roles = await fetchUserRoles(user.id);
     const token = jwt.sign({ sub: user.id, roles }, JWT_SECRET, {
@@ -1321,7 +919,7 @@ app.post('/api/admin/users/:id/roles/grant', requireAuth, authorizeRoles('admin'
     if (!uuidSchema.safeParse(userId).success) return res.status(400).json({ message: 'invalid id' });
     const { role } = roleKeySchema.parse(req.body ?? {});
 
-    const roleRow = await queryOne('SELECT id FROM roles WHERE key = ? LIMIT 1', [role]);
+    const roleRow = await queryOne('SELECT id FROM roles WHERE `key` = ? LIMIT 1', [role]);
     if (!roleRow) return res.status(400).json({ message: 'unknown_role' });
 
     await execute('INSERT IGNORE INTO user_roles(user_id, role_id) VALUES (?, ?)', [userId, roleRow.id]);
@@ -1339,7 +937,7 @@ app.post('/api/admin/users/:id/roles/revoke', requireAuth, authorizeRoles('admin
     if (!uuidSchema.safeParse(userId).success) return res.status(400).json({ message: 'invalid id' });
     const { role } = roleKeySchema.parse(req.body ?? {});
 
-    const roleRow = await queryOne('SELECT id FROM roles WHERE key = ? LIMIT 1', [role]);
+    const roleRow = await queryOne('SELECT id FROM roles WHERE `key` = ? LIMIT 1', [role]);
     if (!roleRow) return res.status(400).json({ message: 'unknown_role' });
 
     await execute('DELETE FROM user_roles WHERE user_id = ? AND role_id = ?', [userId, roleRow.id]);
@@ -1454,8 +1052,6 @@ app.post('/api/admin/users', requireAuth, authorizeRoles('admin'), async (req, r
     const payload = createUserSchema.parse(req.body ?? {});
     const normalizedPhone = normalizePhoneTH(payload.phone);
     const normalizedEmail = payload.email ? payload.email.toLowerCase() : null;
-    const passwordHash = await hashPassword(payload.password);
-    if (!passwordHash) return res.status(500).json({ message: 'password_hash_failed' });
 
     const result = await withTransaction(async connection => {
       const duplicate = normalizedEmail
@@ -1471,6 +1067,8 @@ app.post('/api/admin/users', requireAuth, authorizeRoles('admin'), async (req, r
       }
 
       const userId = randomUUID();
+      const passwordHash = await bcrypt.hash(payload.password, 10);
+
       await execute(
         'INSERT INTO users (id, full_name, phone, email, password_hash, status) VALUES (?, ?, ?, ?, ?, ?)',
         [userId, payload.full_name, normalizedPhone, normalizedEmail, passwordHash, payload.status],
@@ -1533,10 +1131,6 @@ app.put('/api/admin/users/:id', requireAuth, authorizeRoles('admin'), async (req
     const userId = req.params.id;
     if (!uuidSchema.safeParse(userId).success) return res.status(400).json({ message: 'invalid id' });
     const payload = updateUserSchema.parse(req.body ?? {});
-    const hashedPassword = payload.password ? await hashPassword(payload.password) : undefined;
-    if (payload.password && !hashedPassword) {
-      return res.status(500).json({ message: 'password_hash_failed' });
-    }
 
     const result = await withTransaction(async connection => {
       const updateData = {
@@ -1544,7 +1138,7 @@ app.put('/api/admin/users/:id', requireAuth, authorizeRoles('admin'), async (req
         phone: payload.phone ? normalizePhoneTH(payload.phone) : undefined,
         email: payload.email !== undefined ? (payload.email || null) : undefined,
         status: payload.status,
-        password_hash: hashedPassword
+        password_hash: payload.password ? await bcrypt.hash(payload.password, 10) : undefined
       };
 
       const clause = buildUpdateClause(updateData);
@@ -2076,11 +1670,6 @@ app.post('/api/admin/workers', async (req, res) => {
     }
     payload.address.phone = rawPhone;
 
-    const passwordHash = await hashPassword(password);
-    if (!passwordHash) {
-      return res.status(500).json({ message: 'password_hash_failed' });
-    }
-
     const workerData = buildWorkerDataFromPayload(payload);
     if (!workerData.national_id) {
       return res.status(400).json({ message: 'missing_national_id' });
@@ -2113,6 +1702,8 @@ app.post('/api/admin/workers', async (req, res) => {
 
     const workerSql = `INSERT INTO workers (${workerColumns.join(', ')}) VALUES (${workerColumns.map(() => '?').join(', ')})`;
     const workerValues = workerColumns.map(column => filteredWorkerData[column]);
+    const passwordHash = await bcrypt.hash(password, 10);
+
     const created = await withTransaction(async connection => {
       const workerResult = await execute(workerSql, workerValues, connection);
       const workerId = workerResult.insertId;
@@ -2122,7 +1713,7 @@ app.post('/api/admin/workers', async (req, res) => {
         {
           worker_id: workerId,
           email: normalizedEmail,
-              password_hash: passwordHash
+          password_hash: passwordHash
         },
         workerAccountColumns
       );
@@ -2211,10 +1802,6 @@ app.put('/api/admin/workers/:id', async (req, res) => {
     const workerClause = buildUpdateClause(filteredWorkerData);
 
     const passwordToUpdate = toNullableString(payload.credentials?.password);
-    const newPasswordHash = passwordToUpdate ? await hashPassword(passwordToUpdate) : null;
-    if (passwordToUpdate && !newPasswordHash) {
-      return res.status(500).json({ message: 'password_hash_failed' });
-    }
 
     await withTransaction(async connection => {
       if (workerClause.sets.length) {
@@ -2235,8 +1822,9 @@ app.put('/api/admin/workers/:id', async (req, res) => {
         );
       }
 
-      if (newPasswordHash) {
-        const passwordUpdates = filterObjectByColumns({ password_hash: newPasswordHash }, workerAccountColumns);
+      if (passwordToUpdate) {
+        const passwordHash = await bcrypt.hash(passwordToUpdate, 10);
+        const passwordUpdates = filterObjectByColumns({ password_hash: passwordHash }, workerAccountColumns);
         const passwordClause = buildUpdateClause(passwordUpdates);
         if (passwordClause.sets.length) {
           await execute(
@@ -2298,9 +1886,706 @@ app.delete('/api/admin/workers/:id', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Assessment configuration
+// ---------------------------------------------------------------------------
+const assessmentSettingsSchema = z.object({
+  questionCount: z.coerce.number().int().min(1).max(200),
+  startAt: z.union([z.string().min(1), z.null()]).optional(),
+  endAt: z.union([z.string().min(1), z.null()]).optional(),
+  frequencyMonths: z.union([z.coerce.number().int().min(1).max(24), z.null()]).optional()
+});
+
+const assessmentRoundUpsertSchema = z.object({
+  title: z.string().min(1).max(200),
+  category: z.string().max(120).optional().or(z.literal('')),
+  description: z.string().max(2000).optional(),
+  questionCount: z.coerce.number().int().min(1).max(200),
+  startAt: z.union([z.string().min(1), z.null()]).optional(),
+  endAt: z.union([z.string().min(1), z.null()]).optional(),
+  frequencyMonths: z.union([z.coerce.number().int().min(1).max(24), z.null()]).optional()
+}).superRefine((data, ctx) => {
+  if (data.startAt && data.endAt) {
+    const start = new Date(data.startAt);
+    const end = new Date(data.endAt);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && start > end) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'start_after_end',
+        path: ['startAt']
+      });
+    }
+  }
+});
+
+let assessmentSchemaPromise = null;
+
+const manageQuestionBaseSchema = z.object({
+  question_text: z.string().min(1),
+  choice_a: z.string().min(1),
+  choice_b: z.string().min(1),
+  choice_c: z.string().min(1),
+  choice_d: z.string().min(1),
+  answer: z.string().trim().min(1).max(1).transform(value => value.toUpperCase()),
+  difficulty_level: z.coerce.number().int().min(1).max(5).optional(),
+  skill_type: z.string().max(200).optional()
+});
+
+function validateMultipleChoiceAnswer(value, ctx) {
+  if (!['A', 'B', 'C', 'D'].includes(value)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'answer_must_be_A_B_C_or_D',
+      path: ['answer']
+    });
+  }
+}
+
+const manageQuestionCreateItemSchema = manageQuestionBaseSchema.superRefine((data, ctx) => {
+  validateMultipleChoiceAnswer(data.answer, ctx);
+});
+
+const manageQuestionBulkCreateSchema = z.array(manageQuestionCreateItemSchema).min(1);
+
+const manageQuestionUpdateSchema = manageQuestionBaseSchema.partial().superRefine((data, ctx) => {
+  if (data.answer !== undefined) {
+    validateMultipleChoiceAnswer(data.answer, ctx);
+  }
+  if (!Object.values(data).some(value => value !== undefined)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'no_fields_to_update'
+    });
+  }
+});
+
+async function ensureAssessmentSchema(connection) {
+  const executor = connection ?? pool;
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS questions (
+      id CHAR(36) NOT NULL,
+      text TEXT NOT NULL,
+      category VARCHAR(120) NULL,
+      difficulty VARCHAR(60) NULL,
+      version VARCHAR(60) NULL,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+      PRIMARY KEY (id),
+      KEY idx_questions_category (category)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS question_options (
+      id CHAR(36) NOT NULL,
+      question_id CHAR(36) NOT NULL,
+      text TEXT NOT NULL,
+      is_correct TINYINT(1) NOT NULL DEFAULT 0,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      PRIMARY KEY (id),
+      KEY idx_question_options_question (question_id),
+      CONSTRAINT fk_question_options_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS assessment_settings (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      question_count INT UNSIGNED NOT NULL DEFAULT 60,
+      start_at DATETIME(6) NULL,
+      end_at DATETIME(6) NULL,
+      frequency_months INT UNSIGNED NULL,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS assessment_rounds (
+      id CHAR(36) NOT NULL,
+      title VARCHAR(200) NOT NULL,
+      category VARCHAR(120) NULL,
+      description TEXT NULL,
+      question_count INT UNSIGNED NOT NULL DEFAULT 60,
+      start_at DATETIME(6) NULL,
+      end_at DATETIME(6) NULL,
+      frequency_months INT UNSIGNED NULL,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+      PRIMARY KEY (id),
+      KEY idx_assessment_rounds_category (category),
+      KEY idx_assessment_rounds_start_at (start_at),
+      KEY idx_assessment_rounds_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+function ensureAssessmentSchemaReady(connection) {
+  if (!assessmentSchemaPromise) {
+    assessmentSchemaPromise = ensureAssessmentSchema(connection).catch(error => {
+      console.error('[assessment] Failed to ensure schema', error);
+      assessmentSchemaPromise = null;
+      throw error;
+    });
+  }
+  return assessmentSchemaPromise;
+}
+
+let manageQuestionSchemaPromise = null;
+
+async function ensureManageQuestionSchema(connection) {
+  const executor = connection ?? pool;
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS manage_questions (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      question_text TEXT NOT NULL,
+      choice_a TEXT NOT NULL,
+      choice_b TEXT NOT NULL,
+      choice_c TEXT NOT NULL,
+      choice_d TEXT NOT NULL,
+      answer ENUM('A','B','C','D') NOT NULL,
+      difficulty_level TINYINT UNSIGNED NULL,
+      skill_type VARCHAR(200) NULL,
+      created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+      updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+      PRIMARY KEY (id),
+      KEY idx_manage_questions_skill (skill_type),
+      KEY idx_manage_questions_difficulty (difficulty_level)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+function ensureManageQuestionSchemaReady(connection) {
+  if (!manageQuestionSchemaPromise) {
+    manageQuestionSchemaPromise = ensureManageQuestionSchema(connection).catch(error => {
+      console.error('[manage-question] Failed to ensure schema', error);
+      manageQuestionSchemaPromise = null;
+      throw error;
+    });
+  }
+  return manageQuestionSchemaPromise;
+}
+
+function mapManageQuestionRow(row) {
+  if (!row) {
+    return null;
+  }
+  return {
+    id: Number(row.id),
+    question_text: row.question_text,
+    choice_a: row.choice_a,
+    choice_b: row.choice_b,
+    choice_c: row.choice_c,
+    choice_d: row.choice_d,
+    answer: row.answer,
+    difficulty_level: row.difficulty_level === null || row.difficulty_level === undefined
+      ? null
+      : Number(row.difficulty_level),
+    skill_type: row.skill_type,
+    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : null,
+    updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : null
+  };
+}
+
+async function fetchManageQuestionById(questionId, connection) {
+  const row = await queryOne(
+    `SELECT id, question_text, choice_a, choice_b, choice_c, choice_d, answer, difficulty_level, skill_type, created_at, updated_at
+     FROM manage_questions
+     WHERE id = ?
+     LIMIT 1`,
+    [questionId],
+    connection
+  );
+  return mapManageQuestionRow(row);
+}
+
+async function fetchManageQuestions(connection) {
+  const rows = await query(
+    `SELECT id, question_text, choice_a, choice_b, choice_c, choice_d, answer, difficulty_level, skill_type, created_at, updated_at
+     FROM manage_questions
+     ORDER BY id ASC`,
+    [],
+    connection
+  );
+  return rows.map(mapManageQuestionRow).filter(Boolean);
+}
+
+function mapAssessmentSettingsRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    questionCount: row.question_count ? Number(row.question_count) : 0,
+    startAt: row.start_at instanceof Date ? row.start_at.toISOString() : null,
+    endAt: row.end_at instanceof Date ? row.end_at.toISOString() : null,
+    frequencyMonths: row.frequency_months !== null && row.frequency_months !== undefined
+      ? Number(row.frequency_months)
+      : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : null,
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : null
+  };
+}
+
+async function getAssessmentSettings(connection) {
+  const existing = await queryOne(
+    `SELECT id, question_count, start_at, end_at, frequency_months, created_at, updated_at
+     FROM assessment_settings
+     ORDER BY id ASC
+     LIMIT 1`,
+    [],
+    connection
+  );
+
+  if (existing) {
+    return mapAssessmentSettingsRow(existing);
+  }
+
+  await execute(
+    `INSERT INTO assessment_settings (question_count, start_at, end_at, frequency_months)
+     VALUES (?, ?, ?, ?)`,
+    [60, null, null, null],
+    connection
+  );
+
+  const created = await queryOne(
+    `SELECT id, question_count, start_at, end_at, frequency_months, created_at, updated_at
+     FROM assessment_settings
+     ORDER BY id ASC
+     LIMIT 1`,
+    [],
+    connection
+  );
+
+  return mapAssessmentSettingsRow(created);
+}
+
+function mapAssessmentRoundRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title ?? null,
+    category: row.category ?? null,
+    description: row.description ?? null,
+    questionCount: row.question_count ? Number(row.question_count) : 0,
+    startAt: row.start_at instanceof Date ? row.start_at.toISOString() : null,
+    endAt: row.end_at instanceof Date ? row.end_at.toISOString() : null,
+    frequencyMonths: row.frequency_months !== null && row.frequency_months !== undefined
+      ? Number(row.frequency_months)
+      : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : null,
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : null
+  };
+}
+
+function sanitizeAssessmentRoundPayload(payload) {
+  return {
+    title: toNullableString(payload.title),
+    category: toNullableString(payload.category),
+    description: toNullableString(payload.description),
+    questionCount: Number(payload.questionCount) || 0,
+    startAt: parseDateTimeInput(payload.startAt),
+    endAt: parseDateTimeInput(payload.endAt),
+    frequencyMonths: payload.frequencyMonths === null || payload.frequencyMonths === undefined
+      ? null
+      : Number(payload.frequencyMonths)
+  };
+}
+
+async function fetchAssessmentRoundById(roundId, connection) {
+  const row = await queryOne(
+    `SELECT id, title, category, description, question_count, start_at, end_at, frequency_months, created_at, updated_at
+     FROM assessment_rounds
+     WHERE id = ?
+     LIMIT 1`,
+    [roundId],
+    connection
+  );
+  return mapAssessmentRoundRow(row);
+}
+
+async function fetchAssessmentRounds(connection) {
+  const rows = await query(
+    `SELECT id, title, category, description, question_count, start_at, end_at, frequency_months, created_at, updated_at
+     FROM assessment_rounds
+     ORDER BY start_at IS NULL ASC, start_at ASC, created_at DESC`,
+    [],
+    connection
+  );
+  return rows.map(mapAssessmentRoundRow).filter(Boolean);
+}
+
+// ---------------------------------------------------------------------------
+// Assessment settings & rounds
+// ---------------------------------------------------------------------------
+
+app.get('/api/admin/assessments/settings', requireAuth, authorizeRoles('admin'), async (_req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const settings = await withTransaction(async connection => getAssessmentSettings(connection));
+    res.json(settings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/admin/assessments/settings', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const payload = assessmentSettingsSchema.parse(req.body ?? {});
+
+    const startDate = parseDateTimeInput(payload.startAt ?? null);
+    const endDate = parseDateTimeInput(payload.endAt ?? null);
+    const frequencyMonths = payload.frequencyMonths ?? null;
+
+    if (payload.startAt && !startDate) {
+      return res.status(400).json({ message: 'invalid_start_at' });
+    }
+    if (payload.endAt && !endDate) {
+      return res.status(400).json({ message: 'invalid_end_at' });
+    }
+    if (startDate && endDate && endDate <= startDate) {
+      return res.status(400).json({ message: 'end_before_start' });
+    }
+
+    const updated = await withTransaction(async connection => {
+      const current = await getAssessmentSettings(connection);
+      if (!current) {
+        throw new Error('settings_unavailable');
+      }
+
+      await execute(
+        `UPDATE assessment_settings
+         SET question_count = ?, start_at = ?, end_at = ?, frequency_months = ?, updated_at = NOW(6)
+         WHERE id = ?`,
+        [
+          payload.questionCount,
+          startDate,
+          endDate,
+          frequencyMonths,
+          current.id
+        ],
+        connection
+      );
+
+      return getAssessmentSettings(connection);
+    });
+
+    res.json(updated);
+  } catch (error) {
+    if (error?.issues) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    if (error?.message === 'settings_unavailable') {
+      return res.status(500).json({ message: 'settings_unavailable' });
+    }
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/assessments/rounds', requireAuth, authorizeRoles('admin'), async (_req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const items = await fetchAssessmentRounds();
+    res.json({ items });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/assessments/rounds/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const roundId = req.params.id;
+    if (!uuidSchema.safeParse(roundId).success) {
+      return res.status(400).json({ message: 'invalid_id' });
+    }
+
+    const round = await fetchAssessmentRoundById(roundId);
+    if (!round) {
+      return res.status(404).json({ message: 'not_found' });
+    }
+
+    res.json(round);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/assessments/rounds', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const payload = assessmentRoundUpsertSchema.parse(req.body ?? {});
+    const sanitized = sanitizeAssessmentRoundPayload(payload);
+
+    if (!sanitized.title) {
+      return res.status(400).json({ message: 'invalid_title' });
+    }
+    if (payload.startAt && !sanitized.startAt) {
+      return res.status(400).json({ message: 'invalid_start_at' });
+    }
+    if (payload.endAt && !sanitized.endAt) {
+      return res.status(400).json({ message: 'invalid_end_at' });
+    }
+    if (sanitized.startAt && sanitized.endAt && sanitized.endAt <= sanitized.startAt) {
+      return res.status(400).json({ message: 'end_before_start' });
+    }
+
+    const roundId = randomUUID();
+    await execute(
+      `INSERT INTO assessment_rounds (id, title, category, description, question_count, start_at, end_at, frequency_months)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      , [
+        roundId,
+        sanitized.title,
+        sanitized.category,
+        sanitized.description,
+        sanitized.questionCount,
+        sanitized.startAt,
+        sanitized.endAt,
+        sanitized.frequencyMonths
+      ]
+    );
+
+    const created = await fetchAssessmentRoundById(roundId);
+    res.status(201).json(created);
+  } catch (error) {
+    if (error?.issues) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/admin/assessments/rounds/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const roundId = req.params.id;
+    if (!uuidSchema.safeParse(roundId).success) {
+      return res.status(400).json({ message: 'invalid_id' });
+    }
+
+    const exists = await queryOne('SELECT id FROM assessment_rounds WHERE id = ? LIMIT 1', [roundId]);
+    if (!exists) {
+      return res.status(404).json({ message: 'not_found' });
+    }
+
+    const payload = assessmentRoundUpsertSchema.parse(req.body ?? {});
+    const sanitized = sanitizeAssessmentRoundPayload(payload);
+
+    if (!sanitized.title) {
+      return res.status(400).json({ message: 'invalid_title' });
+    }
+    if (payload.startAt && !sanitized.startAt) {
+      return res.status(400).json({ message: 'invalid_start_at' });
+    }
+    if (payload.endAt && !sanitized.endAt) {
+      return res.status(400).json({ message: 'invalid_end_at' });
+    }
+    if (sanitized.startAt && sanitized.endAt && sanitized.endAt <= sanitized.startAt) {
+      return res.status(400).json({ message: 'end_before_start' });
+    }
+
+    await execute(
+      `UPDATE assessment_rounds
+       SET title = ?, category = ?, description = ?, question_count = ?, start_at = ?, end_at = ?, frequency_months = ?, updated_at = NOW(6)
+       WHERE id = ?`,
+      [
+        sanitized.title,
+        sanitized.category,
+        sanitized.description,
+        sanitized.questionCount,
+        sanitized.startAt,
+        sanitized.endAt,
+        sanitized.frequencyMonths,
+        roundId
+      ]
+    );
+
+    const updated = await fetchAssessmentRoundById(roundId);
+    res.json(updated);
+  } catch (error) {
+    if (error?.issues) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/assessments/rounds/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureAssessmentSchemaReady();
+    const roundId = req.params.id;
+    if (!uuidSchema.safeParse(roundId).success) {
+      return res.status(400).json({ message: 'invalid_id' });
+    }
+
+    const result = await execute('DELETE FROM assessment_rounds WHERE id = ?', [roundId]);
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: 'not_found' });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Manage question API (legacy structure)
+// ---------------------------------------------------------------------------
+
+app.get('/api/managequestion/all', requireAuth, authorizeRoles('admin'), async (_req, res) => {
+  try {
+    await ensureManageQuestionSchemaReady();
+    const items = await fetchManageQuestions();
+    res.json(items);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/managequestion/add', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureManageQuestionSchemaReady();
+    const rawPayload = Array.isArray(req.body) ? req.body : [req.body];
+    const payload = manageQuestionBulkCreateSchema.parse(rawPayload);
+
+    const createdItems = await withTransaction(async connection => {
+      const placeholders = payload.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values = [];
+      payload.forEach(item => {
+        values.push(
+          item.question_text,
+          item.choice_a,
+          item.choice_b,
+          item.choice_c,
+          item.choice_d,
+          item.answer,
+          item.difficulty_level ?? null,
+          item.skill_type ?? null
+        );
+      });
+
+      const insertSql = `
+        INSERT INTO manage_questions (question_text, choice_a, choice_b, choice_c, choice_d, answer, difficulty_level, skill_type)
+        VALUES ${placeholders}
+      `;
+
+      const insertResult = await execute(insertSql, values, connection);
+      const affected = Number(insertResult.affectedRows || 0);
+      if (!affected) {
+        return [];
+      }
+
+      const firstId = Number(insertResult.insertId || 0);
+      const idList = [];
+      for (let index = 0; index < affected; index += 1) {
+        idList.push(firstId + index);
+      }
+
+      const rows = await query(
+        `SELECT id, question_text, choice_a, choice_b, choice_c, choice_d, answer, difficulty_level, skill_type, created_at, updated_at
+         FROM manage_questions
+         WHERE id IN (${idList.map(() => '?').join(',')})
+         ORDER BY id ASC`,
+        idList,
+        connection
+      );
+
+      return rows.map(mapManageQuestionRow).filter(Boolean);
+    });
+
+    res.status(201).json({ items: createdItems });
+  } catch (error) {
+    if (error?.issues) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.put('/api/managequestion/update/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureManageQuestionSchemaReady();
+    const questionIdRaw = req.params.id;
+    const questionId = Number.parseInt(questionIdRaw, 10);
+    if (!Number.isFinite(questionId) || questionId <= 0) {
+      return res.status(400).json({ message: 'invalid_id' });
+    }
+
+    const payload = manageQuestionUpdateSchema.parse(req.body ?? {});
+    const updateData = {};
+    if (payload.question_text !== undefined) updateData.question_text = payload.question_text;
+    if (payload.choice_a !== undefined) updateData.choice_a = payload.choice_a;
+    if (payload.choice_b !== undefined) updateData.choice_b = payload.choice_b;
+    if (payload.choice_c !== undefined) updateData.choice_c = payload.choice_c;
+    if (payload.choice_d !== undefined) updateData.choice_d = payload.choice_d;
+    if (payload.answer !== undefined) updateData.answer = payload.answer;
+    if (payload.difficulty_level !== undefined) updateData.difficulty_level = payload.difficulty_level ?? null;
+    if (payload.skill_type !== undefined) updateData.skill_type = payload.skill_type ?? null;
+
+    const clause = buildUpdateClause(updateData);
+    if (!clause.sets.length) {
+      return res.status(400).json({ message: 'no_fields_to_update' });
+    }
+
+    const updateSql = `
+      UPDATE manage_questions
+      SET ${clause.sets.join(', ')}, updated_at = NOW(6)
+      WHERE id = ?
+      LIMIT 1
+    `;
+
+    const result = await execute(updateSql, [...clause.values, questionId]);
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: 'not_found' });
+    }
+
+    const updated = await fetchManageQuestionById(questionId);
+    res.json(updated);
+  } catch (error) {
+    if (error?.issues) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.issues });
+    }
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.delete('/api/managequestion/delete/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    await ensureManageQuestionSchemaReady();
+    const questionIdRaw = req.params.id;
+    const questionId = Number.parseInt(questionIdRaw, 10);
+    if (!Number.isFinite(questionId) || questionId <= 0) {
+      return res.status(400).json({ message: 'invalid_id' });
+    }
+
+    const result = await execute('DELETE FROM manage_questions WHERE id = ? LIMIT 1', [questionId]);
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: 'not_found' });
+    }
+
+    res.json({ message: 'Question deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Question bank
 // ---------------------------------------------------------------------------
-const adminQuestionOptionSchema = z.object({
+const questionOptionSchema = z.object({
   text: z.string().min(1),
   is_correct: z.boolean().default(false)
 });
@@ -2311,7 +2596,7 @@ const createQuestionSchema = z.object({
   difficulty: z.string().max(40).optional(),
   version: z.string().max(40).optional(),
   active: z.boolean().optional().default(true),
-  options: z.array(adminQuestionOptionSchema).min(2)
+  options: z.array(questionOptionSchema).min(2)
 }).refine(payload => payload.options.some(opt => opt.is_correct), {
   message: 'At least one option must be correct',
   path: ['options']
@@ -2349,19 +2634,26 @@ function mapQuestionRow(row) {
 
 app.get('/api/admin/questions', requireAuth, authorizeRoles('admin'), async (req, res) => {
   try {
+    await ensureAssessmentSchemaReady();
     const params = questionListQuerySchema.parse(req.query ?? {});
     const filters = [];
-    const values = [];
+    const filterValues = [];
 
-    if (params.category) { filters.push('q.category = ?'); values.push(params.category); }
-    if (params.active !== undefined) { filters.push('q.active = ?'); values.push(params.active ? 1 : 0); }
-    if (params.search) { const like = `%${params.search}%`; filters.push('q.text LIKE ?'); values.push(like); }
+    if (params.category) { filters.push('q.category = ?'); filterValues.push(params.category); }
+    if (params.active !== undefined) { filters.push('q.active = ?'); filterValues.push(params.active ? 1 : 0); }
+    if (params.search) {
+      const like = `%${params.search}%`;
+      filters.push('q.text LIKE ?');
+      filterValues.push(like);
+    }
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-    const countRows = await query(`SELECT COUNT(*) AS total FROM questions q ${whereClause}`, values);
+    const countRows = await query(`SELECT COUNT(*) AS total FROM questions q ${whereClause}`, filterValues);
     const total = Number(countRows[0]?.total ?? 0);
 
-    values.push(params.limit, params.offset);
+    const limitValue = Number.isFinite(params.limit) ? params.limit : 50;
+    const offsetValue = Number.isFinite(params.offset) ? params.offset : 0;
+
     const rows = await query(
       `SELECT
          q.id,
@@ -2376,8 +2668,8 @@ app.get('/api/admin/questions', requireAuth, authorizeRoles('admin'), async (req
        ${whereClause}
        GROUP BY q.id
        ORDER BY q.text ASC
-       LIMIT ? OFFSET ?`,
-      values
+       LIMIT ${limitValue} OFFSET ${offsetValue}`,
+      filterValues
     );
 
     const items = rows.map(mapQuestionRow);
@@ -2390,6 +2682,7 @@ app.get('/api/admin/questions', requireAuth, authorizeRoles('admin'), async (req
 
 app.get('/api/admin/questions/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
   try {
+    await ensureAssessmentSchemaReady();
     const questionId = req.params.id;
     if (!uuidSchema.safeParse(questionId).success) return res.status(400).json({ message: 'invalid id' });
     const row = await queryOne(
@@ -2411,6 +2704,7 @@ app.get('/api/admin/questions/:id', requireAuth, authorizeRoles('admin'), async 
 
 app.post('/api/admin/questions', requireAuth, authorizeRoles('admin'), async (req, res) => {
   try {
+    await ensureAssessmentSchemaReady();
     const payload = createQuestionSchema.parse(req.body ?? {});
     const questionId = randomUUID();
 
@@ -2461,11 +2755,12 @@ const updateQuestionSchema = z.object({
   difficulty: z.string().max(40).optional(),
   version: z.string().max(40).optional(),
   active: z.boolean().optional(),
-  options: z.array(adminQuestionOptionSchema).min(2).optional()
+  options: z.array(questionOptionSchema).min(2).optional()
 }).refine(data => Object.keys(data).length > 0, { message: 'No fields to update' });
 
 app.put('/api/admin/questions/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
   try {
+    await ensureAssessmentSchemaReady();
     const questionId = req.params.id;
     if (!uuidSchema.safeParse(questionId).success) return res.status(400).json({ message: 'invalid id' });
     const payload = updateQuestionSchema.parse(req.body ?? {});
@@ -2520,6 +2815,7 @@ app.put('/api/admin/questions/:id', requireAuth, authorizeRoles('admin'), async 
 
 app.delete('/api/admin/questions/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
   try {
+    await ensureAssessmentSchemaReady();
     const questionId = req.params.id;
     if (!uuidSchema.safeParse(questionId).success) return res.status(400).json({ message: 'invalid id' });
     const result = await execute('DELETE FROM questions WHERE id = ?', [questionId]);

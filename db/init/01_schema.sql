@@ -110,6 +110,34 @@ CREATE TABLE IF NOT EXISTS question_options (
   CONSTRAINT fk_question_options_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS assessment_settings (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  question_count INT UNSIGNED NOT NULL DEFAULT 60,
+  start_at DATETIME(6) NULL,
+  end_at DATETIME(6) NULL,
+  frequency_months INT UNSIGNED NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS assessment_rounds (
+  id CHAR(36) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  category VARCHAR(120) NULL,
+  description TEXT NULL,
+  question_count INT UNSIGNED NOT NULL DEFAULT 60,
+  start_at DATETIME(6) NULL,
+  end_at DATETIME(6) NULL,
+  frequency_months INT UNSIGNED NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  KEY idx_assessment_rounds_category (category),
+  KEY idx_assessment_rounds_start_at (start_at),
+  KEY idx_assessment_rounds_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS assessments (
   id CHAR(36) NOT NULL,
   user_id CHAR(36) NOT NULL,
@@ -131,17 +159,6 @@ CREATE TABLE IF NOT EXISTS assessment_answers (
   CONSTRAINT fk_assessment_answers_assessment FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
   CONSTRAINT fk_assessment_answers_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
   CONSTRAINT fk_assessment_answers_option FOREIGN KEY (chosen_option_id) REFERENCES question_options(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS assessment_settings (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  question_count INT UNSIGNED NOT NULL DEFAULT 10,
-  start_at DATETIME(6) NULL,
-  end_at DATETIME(6) NULL,
-  frequency_months INT UNSIGNED NULL,
-  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Worker management tables

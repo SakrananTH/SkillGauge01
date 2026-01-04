@@ -49,25 +49,7 @@ const Login = () => {
     
     const trimmedUsername = username.trim();
 
-    if (trimmedUsername === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      setError('');
-      const token = 'admin-bypass-token';
-      const user = {
-        id: '11111111-1111-1111-1111-111111111111',
-        phone: ADMIN_USERNAME,
-        email: ADMIN_EMAIL,
-        roles: ['admin']
-      };
-      try {
-        sessionStorage.setItem('auth_token', token);
-        sessionStorage.setItem('user_id', user.id);
-        sessionStorage.setItem('user_email', user.email);
-        sessionStorage.setItem('role', 'admin');
-      } catch {}
-      const navUser = { username: user.phone, role: 'admin' };
-      navigate('/admin', { state: { user: navUser, source: 'login' } });
-      return;
-    }
+    // NOTE: Do not bypass on the client. Always authenticate via the API so we receive a valid JWT.
 
     try {
       const loginUrl = API ? `${API}/api/auth/login` : '/api/auth/login';

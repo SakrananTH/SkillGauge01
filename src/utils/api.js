@@ -10,6 +10,16 @@ const inferLocalApiBase = () => {
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || inferLocalApiBase();
 
+function getAuthToken() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const token = window.sessionStorage?.getItem('auth_token') || window.localStorage?.getItem('auth_token');
+    return token || null;
+  } catch {
+    return null;
+  }
+}
+
 function isFormData(body) {
   return typeof FormData !== 'undefined' && body instanceof FormData;
 }
@@ -22,6 +32,14 @@ export async function apiRequest(path, options = {}) {
     credentials: options.credentials ?? 'include',
     ...rest
   };
+
+  // Attach bearer token automatically (used by admin endpoints).
+  if (!requestHeaders.has('Authorization')) {
+    const token = getAuthToken();
+    if (token) {
+      requestHeaders.set('Authorization', `Bearer ${token}`);
+    }
+  }
 
   if (body !== undefined) {
     if (isFormData(body) || body instanceof Blob) {

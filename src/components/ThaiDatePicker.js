@@ -6,7 +6,7 @@ const MONTH_NAMES = [
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ];
 
-const ThaiDatePicker = ({ value, onChange, placeholder = "วัน/เดือน/ปี (พ.ศ.)", className = "" }) => {
+const ThaiDatePicker = ({ value, onChange, placeholder = "วัน/เดือน/ปี (พ.ศ.)", className = "", id }) => {
     const [showCalendar, setShowCalendar] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date()); // For navigation
     const [selectedDate, setSelectedDate] = useState(null);
@@ -61,6 +61,7 @@ const ThaiDatePicker = ({ value, onChange, placeholder = "วัน/เดือ
         const dateDay = String(day).padStart(2, '0');
         const isoDate = `${year}-${month}-${dateDay}`;
 
+        setSelectedDate(newDate);
         onChange(isoDate);
         setShowCalendar(false);
     };
@@ -158,6 +159,7 @@ const ThaiDatePicker = ({ value, onChange, placeholder = "วัน/เดือ
     return (
         <div className={`thai-date-picker ${className}`} ref={containerRef}>
             <input
+                id={id}
                 type="text"
                 readOnly
                 value={formatDisplay(selectedDate)}
