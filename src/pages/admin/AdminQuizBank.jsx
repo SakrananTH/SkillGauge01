@@ -9,9 +9,14 @@ const AdminQuizBank = () => {
         <div className="filter-pills">
           <select className="pill" defaultValue="">
             <option value="">All categories</option>
-            <option value="safety">Safety</option>
-            <option value="electrical">Electrical</option>
             <option value="structure">Structure</option>
+            <option value="plumbing">Plumbing</option>
+            <option value="roofing">Roofing</option>
+            <option value="masonry">Masonry</option>
+            <option value="aluminum">Aluminum</option>
+            <option value="ceiling">Ceiling</option>
+            <option value="electric">Electric</option>
+            <option value="tiling">Tiling</option>
           </select>
           <select className="pill" defaultValue="">
             <option value="">Difficulty</option>

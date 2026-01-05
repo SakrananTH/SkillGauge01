@@ -213,15 +213,14 @@ const AdminSignup = () => {
                 className={errors.category ? 'error' : ''}
               >
                 <option value="">เลือกหมวดหมู่</option>
-                <option value="othe0">1.ไม่มี</option>
-                <option value="othe1">2.ช่างไฟฟ้า</option>
-                <option value="othe2">3.ช่างประปา</option>
-                <option value="othe3">4.ช่างก่ออิฐฉาบปูน</option>
-                <option value="othe4">5.ช่างประตู-หน้าต่าง</option>
-                <option value="othe5">6.ช่างฝ้าเพดาน</option>
-                <option value="othe6">7.ช่างหลังคา</option>
-                <option value="othe7">8.ช่างกระเบื้อง</option>
-                <option value="othe">9.ช่างโครงสร้าง</option>
+                <option value="structure">1.โครงสร้าง</option>
+                <option value="plumbing">2.ประปา</option>
+                <option value="roofing">3.หลังคา</option>
+                <option value="masonry">4.ก่ออิฐฉาบปูน</option>
+                <option value="aluminum">5.ประตูหน้าต่างอลูมิเนียม</option>
+                <option value="ceiling">6.ฝ้าเพดาล</option>
+                <option value="electric">7.ไฟฟ้า</option>
+                <option value="tiling">8.กระเบื้อง</option>
               </select>
               {errors.category && <span className="error-message">{errors.category}</span>}
             </div>

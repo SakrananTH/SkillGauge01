@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import '../Dashboard.css';
 import './AdminQuizBank.css';
 import { apiRequest } from '../../utils/api';
-import ThaiDatePicker from '../../components/ThaiDatePicker';
 
 const ASSESSMENT_QUESTION_COUNT = 60;
 const ROUND_NEW_VALUE = '__new__';
@@ -14,14 +13,14 @@ const STORAGE_KEYS = {
 const TABLE_FILTER_ALL = 'all';
 
 const CATEGORY_OPTIONS = [
-  { value: 'safety', label: '1.ช่างโครงสร้าง' },
-  { value: 'electric', label: '2.ช่างไฟฟ้า' },
-  { value: 'plumbing', label: '3.ช่างประปา' },
-  { value: 'steel', label: '4.ช่างเหล็ก' },
-  { value: 'carpenter', label: '5.ช่างไม้' },
-  { value: 'hvac', label: '6.ช่างเครื่องปรับอากาศ' },
-  { value: 'other', label: '7.อื่นๆ' }
-  
+  { value: 'structure', label: '1.โครงสร้าง' },
+  { value: 'plumbing', label: '2.ประปา' },
+  { value: 'roofing', label: '3.หลังคา' },
+  { value: 'masonry', label: '4.ก่ออิฐฉาบปูน' },
+  { value: 'aluminum', label: '5.ประตูหน้าต่างอลูมิเนียม' },
+  { value: 'ceiling', label: '6.ฝ้าเพดาล' },
+  { value: 'electric', label: '7.ไฟฟ้า' },
+  { value: 'tiling', label: '8.กระเบื้อง' }
 ];
 
 const CATEGORY_BUTTON_OPTIONS = CATEGORY_OPTIONS;
@@ -32,9 +31,9 @@ const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((accumulator, option) => {
 }, {});
 
 const DIFFICULTY_OPTIONS = [
-  { value: 'easy', label: 'ง่าย' },
-  { value: 'medium', label: 'ปานกลาง' },
-  { value: 'hard', label: 'ยาก' }
+  { value: 'easy', label: 'ระดับที่ 1' },
+  { value: 'medium', label: 'ระดับที่ 2' },
+  { value: 'hard', label: 'ระดับที่ 3' }
 ];
 
 const DIFFICULTY_LABELS = DIFFICULTY_OPTIONS.reduce((accumulator, option) => {
@@ -52,16 +51,8 @@ const QUESTION_ERROR_MESSAGES = {
   forbidden: 'คุณไม่มีสิทธิ์ทำรายการนี้'
 };
 
-const SETTINGS_ERROR_MESSAGES = {
-  invalid_start_at: 'รูปแบบเวลาเริ่มสอบไม่ถูกต้อง',
-  invalid_end_at: 'รูปแบบเวลาปิดสอบไม่ถูกต้อง',
-  end_before_start: 'เวลาปิดสอบต้องอยู่หลังเวลาเริ่มสอบ',
-  settings_unavailable: 'ไม่พบการตั้งค่าการสอบในระบบ'
-};
-
 const GENERIC_ERROR_MESSAGES = {
   ...QUESTION_ERROR_MESSAGES,
-  ...SETTINGS_ERROR_MESSAGES,
   invalid_title: 'กรุณาระบุชื่อกิจกรรมให้ถูกต้อง',
   invalid_id: 'รหัสไม่ถูกต้อง',
   not_found: 'ไม่พบข้อมูลในระบบ'
@@ -84,60 +75,6 @@ const createInitialForm = (categoryValue = null) => {
     difficulty: DIFFICULTY_OPTIONS[0].value,
     options: Array.from({ length: DEFAULT_OPTION_COUNT }, () => createEmptyOption())
   };
-};
-
-const toISOStringOrNull = (dateValue) => {
-  if (!(dateValue instanceof Date)) {
-    return null;
-  }
-  const timestamp = dateValue.getTime();
-  if (Number.isNaN(timestamp)) {
-    return null;
-  }
-  return dateValue.toISOString();
-};
-
-const extractDatePart = (value) => {
-  if (!value) {
-    return '';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  return date.toISOString().slice(0, 10);
-};
-
-const extractTimePart = (value) => {
-  if (!value) {
-    return '';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  return date.toISOString().slice(11, 16);
-};
-
-const buildLocalDateTime = (dateValue, timeValue) => {
-  const trimmedDate = typeof dateValue === 'string' ? dateValue.trim() : '';
-  if (!trimmedDate) {
-    return null;
-  }
-
-  const [hourPart = '00', minutePart = '00'] = (timeValue || '').split(':');
-  const hours = Number.parseInt(hourPart, 10);
-  const minutes = Number.parseInt(minutePart, 10);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return null;
-  }
-
-  const isoCandidate = `${trimmedDate}T${hourPart.padStart(2, '0')}:${minutePart.padStart(2, '0')}:00`;
-  const date = new Date(isoCandidate);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date;
 };
 
 const toFriendlyApiMessage = (error, fallback = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง') => {
@@ -177,17 +114,6 @@ const AdminQuizBank = () => {
   const [roundSaving, setRoundSaving] = useState(false);
   const [roundError, setRoundError] = useState('');
   const [roundMessage, setRoundMessage] = useState('');
-  const [settings, setSettings] = useState({
-    questionCount: String(ASSESSMENT_QUESTION_COUNT),
-    startDate: '',
-    startTime: '',
-    endDate: '',
-    endTime: '',
-    frequencyMonths: ''
-  });
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsError, setSettingsError] = useState('');
-  const [settingsMessage, setSettingsMessage] = useState('');
   const [tableCategoryFilter, setTableCategoryFilter] = useState(TABLE_FILTER_ALL);
   const [tableDifficultyFilter, setTableDifficultyFilter] = useState(TABLE_FILTER_ALL);
 
@@ -204,26 +130,6 @@ const AdminQuizBank = () => {
       setQuestionsError(toFriendlyApiMessage(error, 'ไม่สามารถโหลดชุดคำถามได้'));
     } finally {
       setQuestionsLoading(false);
-    }
-  }, []);
-
-  const loadSettings = useCallback(async () => {
-    setSettingsError('');
-    try {
-      const response = await apiRequest('/api/admin/assessments/settings');
-      if (response) {
-        setSettings({
-          questionCount: String(ASSESSMENT_QUESTION_COUNT),
-          startDate: extractDatePart(response.startAt),
-          startTime: extractTimePart(response.startAt),
-          endDate: extractDatePart(response.endAt),
-          endTime: extractTimePart(response.endAt),
-          frequencyMonths: response.frequencyMonths ? String(response.frequencyMonths) : ''
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load assessment settings', error);
-      setSettingsError(toFriendlyApiMessage(error, 'ไม่สามารถโหลดการตั้งค่าการสอบได้'));
     }
   }, []);
 
@@ -265,8 +171,8 @@ const AdminQuizBank = () => {
 
   useEffect(() => {
     loadQuestions();
-    loadSettings();
-  }, [loadQuestions, loadSettings]);
+    loadQuestions();
+  }, [loadQuestions]);
 
   useEffect(() => {
     const storedRoundId = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEYS.roundId) : null;
@@ -486,55 +392,6 @@ const AdminQuizBank = () => {
     }
   };
 
-  const handleSettingsSubmit = async (event) => {
-    event.preventDefault();
-    setSettingsError('');
-    setSettingsMessage('');
-
-    const questionCountValue = ASSESSMENT_QUESTION_COUNT;
-    let frequencyValue = null;
-    if (settings.frequencyMonths) {
-      frequencyValue = Number.parseInt(settings.frequencyMonths, 10);
-      if (!Number.isFinite(frequencyValue) || frequencyValue < 1) {
-        setSettingsError('ความถี่การสอบต้องเป็นจำนวนเดือนตั้งแต่ 1 เดือนขึ้นไป');
-        return;
-      }
-    }
-
-    const startDateTime = buildLocalDateTime(settings.startDate, settings.startTime);
-    const endDateTime = buildLocalDateTime(settings.endDate, settings.endTime);
-
-    const payload = {
-      questionCount: questionCountValue,
-      startAt: toISOStringOrNull(startDateTime),
-      endAt: toISOStringOrNull(endDateTime),
-      frequencyMonths: frequencyValue
-    };
-
-    setSettingsSaving(true);
-    try {
-      const updated = await apiRequest('/api/admin/assessments/settings', { method: 'PUT', body: payload });
-      if (updated) {
-        setSettings({
-          questionCount: String(ASSESSMENT_QUESTION_COUNT),
-          startDate: extractDatePart(updated.startAt),
-          startTime: extractTimePart(updated.startAt),
-          endDate: extractDatePart(updated.endAt),
-          endTime: extractTimePart(updated.endAt),
-          frequencyMonths: updated.frequencyMonths ? String(updated.frequencyMonths) : ''
-        });
-      }
-      setSettingsMessage('บันทึกการตั้งค่าเรียบร้อย');
-    } catch (error) {
-      console.error('Failed to update assessment settings', error);
-      const messageKey = error?.data?.message;
-      const friendly = SETTINGS_ERROR_MESSAGES[messageKey] || error?.message || 'ไม่สามารถบันทึกการตั้งค่าได้';
-      setSettingsError(friendly);
-    } finally {
-      setSettingsSaving(false);
-    }
-  };
-
   const selectedRound = useMemo(() => {
     if (!selectedRoundId || selectedRoundId === ROUND_NEW_VALUE) {
       return null;
@@ -598,90 +455,6 @@ const AdminQuizBank = () => {
       <div className="quiz-content">
         <div className="quiz-header">
           <h2>คลังข้อสอบ</h2>
-        </div>
-
-        <div className="quiz-form-card" style={{ marginBottom: '2rem' }}>
-          <h3>ตั้งค่าการสอบประเมิน</h3>
-          <form onSubmit={handleSettingsSubmit} className="quiz-form">
-            <div className="form-grid form-grid--settings">
-              <div className="form-group">
-                <label htmlFor="setting-question-count">จำนวนคำถามต่อรอบ *</label>
-                <input
-                  id="setting-question-count"
-                  type="number"
-                  min="1"
-                  value={String(ASSESSMENT_QUESTION_COUNT)}
-                  disabled
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="setting-frequency-months">ความถี่การสอบ (เดือน)</label>
-                <input
-                  id="setting-frequency-months"
-                  type="number"
-                  min="1"
-                  placeholder="เช่น 2 หมายถึงทุก 2 เดือน"
-                  value={settings.frequencyMonths}
-                  onChange={(event) => setSettings(prev => ({ ...prev, frequencyMonths: event.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="form-group form-group--wide">
-              <label htmlFor="setting-date-range">ช่วงเวลาสอบ</label>
-              <div className="date-range-grid" id="setting-date-range">
-                <div className="date-range-item">
-                  <span className="date-range-caption">เริ่ม</span>
-                  <div className="datetime-field">
-                    <ThaiDatePicker
-                      id="setting-start-date"
-                      value={settings.startDate}
-                      onChange={(date) => setSettings(prev => ({ ...prev, startDate: date }))}
-                      placeholder="เลือกวันที่ (พ.ศ.)"
-                    />
-                    <div className="datetime-field-time">
-                      <input
-                        id="setting-start-time"
-                        type="time"
-                        value={settings.startTime}
-                        onChange={(event) => setSettings(prev => ({ ...prev, startTime: event.target.value }))}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="date-range-arrow" aria-hidden="true">→</div>
-                <div className="date-range-item">
-                  <span className="date-range-caption">สิ้นสุด</span>
-                  <div className="datetime-field">
-                    <ThaiDatePicker
-                      id="setting-end-date"
-                      value={settings.endDate}
-                      onChange={(date) => setSettings(prev => ({ ...prev, endDate: date }))}
-                      placeholder="เลือกวันที่ (พ.ศ.)"
-                    />
-                    <div className="datetime-field-time">
-                      <input
-                        id="setting-end-time"
-                        type="time"
-                        value={settings.endTime}
-                        onChange={(event) => setSettings(prev => ({ ...prev, endTime: event.target.value }))}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <span className="form-hint">กำหนดวันและเวลาเปิด-ปิดการสอบในแถวเดียวเพื่อดูง่ายขึ้น</span>
-            </div>
-
-            {settingsError && <div className="form-feedback error">{settingsError}</div>}
-            {settingsMessage && <div className="form-feedback success">{settingsMessage}</div>}
-
-            <div className="form-actions">
-              <button type="submit" className="pill primary" disabled={settingsSaving}>
-                {settingsSaving ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
-              </button>
-            </div>
-          </form>
         </div>
 
         <div className="quiz-form-card quiz-round-card">

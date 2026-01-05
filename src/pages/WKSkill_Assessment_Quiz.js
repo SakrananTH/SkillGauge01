@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './WKDashboard.css';
 import './WKSkillAssessmentQuiz.css';
 import { mockUser } from '../mock/mockData';
+import WorkerSidebar from '../components/WorkerSidebar';
 
 const sampleQuestions = [
   {
@@ -76,65 +77,63 @@ const SkillAssessmentQuiz = () => {
 
   return (
     <div className="dash-layout">
-      <aside className="dash-sidebar">
-        <nav className="menu">
-          <button type="button" className="menu-item" onClick={() => navigate('/dashboard', { state: { user } })}>Tasks</button>
-          <button type="button" className="menu-item active">Skill Assessment Test</button>
-          <button type="button" className="menu-item">Submit work</button>
-          <button type="button" className="menu-item">Settings</button>
-        </nav>
-      </aside>
+      <WorkerSidebar user={user} active="skill" />
 
       <main className="dash-main">
-        <div className="dash-topbar">
-          <div className="role-pill">Worker</div>
-          <div className="top-actions">
-            <span className="profile">
-              <span className="avatar" />
-              {user?.phone && (
-                <span className="phone" style={{ marginLeft: '2rem' }}>{user.phone}</span>
-              )}
-            </span>
-          </div>
-        </div>
+        <div className="worker-container">
+          <header className="worker-hero">
+            <div>
+              <span className="worker-chip">{user?.role || 'Worker'}</span>
+              <h1>ทำแบบทดสอบ</h1>
+              <p>ตอบคำถามให้ครบทุกข้อ จากนั้นกดส่งคำตอบเพื่อบันทึกผลการประเมินของคุณ</p>
+            </div>
+            <div className="worker-meta">
+              <div className="worker-meta__avatar" aria-hidden="true">{(user?.username || 'W').slice(0,1).toUpperCase()}</div>
+              <div className="worker-meta__info">
+                <span className="worker-meta__name">{user?.username || 'ไม่ระบุ'}</span>
+                {user?.phone && <span className="worker-meta__contact">{user.phone}</span>}
+              </div>
+            </div>
+          </header>
 
-        <div className="quiz-page">
-          <div className="progress">
-            <div className="bar" style={{ width: `${percent}%` }} />
-            <div className="pct">{percent}%</div>
-          </div>
+          <div className="quiz-page">
+            <div className="progress">
+              <div className="bar" style={{ width: `${percent}%` }} />
+              <div className="pct">{percent}%</div>
+            </div>
 
-          <h1>คำถามที่ {idx + 1} จาก {total}</h1>
-          <p className="question">{q.text}</p>
+            <h1>คำถามที่ {idx + 1} จาก {total}</h1>
+            <p className="question">{q.text}</p>
 
-          <div className="choices">
-            {q.choices.map((c, i) => (
-              <label
-                key={i}
-                className={`choice ${answers[q.id] === i ? 'selected' : ''}`}
-                role="radio"
-                aria-checked={answers[q.id] === i}
-                tabIndex={0}
-                onClick={() => toggleChoice(i)}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleChoice(i); }
-                }}
-              >
-                <input
-                  type="radio"
-                  name={q.id}
-                  checked={answers[q.id] === i}
-                  readOnly
-                />
-                <span className="bullet" />
-                <span className="text">{c}</span>
-              </label>
-            ))}
-          </div>
+            <div className="choices">
+              {q.choices.map((c, i) => (
+                <label
+                  key={i}
+                  className={`choice ${answers[q.id] === i ? 'selected' : ''}`}
+                  role="radio"
+                  aria-checked={answers[q.id] === i}
+                  tabIndex={0}
+                  onClick={() => toggleChoice(i)}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleChoice(i); }
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name={q.id}
+                    checked={answers[q.id] === i}
+                    readOnly
+                  />
+                  <span className="bullet" />
+                  <span className="text">{c}</span>
+                </label>
+              ))}
+            </div>
 
-          <div className="nav-actions">
-            <button className="btn-secondary" onClick={prev} disabled={idx === 0}>ก่อนหน้า</button>
-            <button className="btn-primary" onClick={next}>{idx === total - 1 ? 'ส่งคำตอบ' : 'ต่อไป'}</button>
+            <div className="nav-actions">
+              <button className="btn-secondary" onClick={prev} disabled={idx === 0}>ก่อนหน้า</button>
+              <button className="btn-primary" onClick={next}>{idx === total - 1 ? 'ส่งคำตอบ' : 'ต่อไป'}</button>
+            </div>
           </div>
         </div>
       </main>

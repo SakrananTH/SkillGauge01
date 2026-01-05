@@ -79,9 +79,15 @@ const Project_Tasks = () => {
                 </div>
                 <div className="field">
                   <select className="select" value={form.role} onChange={update('role')}>
-                    <option value="">ช่างโครงสร้าง</option>
-                    <option value="plumber">ช่างประปา</option>
-                    <option value="electric">ช่างไฟ</option>
+                    <option value="">เลือกประเภทช่าง</option>
+                    <option value="structure">ช่างโครงสร้าง</option>
+                    <option value="plumbing">ช่างประปา</option>
+                    <option value="roofing">ช่างหลังคา</option>
+                    <option value="masonry">ช่างก่ออิฐฉาบปูน</option>
+                    <option value="aluminum">ช่างประตูหน้าต่างอลูมิเนียม</option>
+                    <option value="ceiling">ช่างฝ้าเพดาล</option>
+                    <option value="electric">ช่างไฟฟ้า</option>
+                    <option value="tiling">ช่างกระเบื้อง</option>
                   </select>
                 </div>
                 <div className="field">

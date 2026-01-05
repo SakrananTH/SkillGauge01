@@ -303,13 +303,14 @@ const ROLE_LABELS = {
 };
 
 const TRADE_LABELS = {
-  electrician: 'ช่างไฟฟ้า',
-  plumber: 'ช่างประปา',
-  mason: 'ช่างปูน',
-  steel: 'ช่างเหล็ก',
-  carpenter: 'ช่างไม้',
-  hvac: 'ช่างเครื่องปรับอากาศ',
-  other: 'อื่นๆ'
+  structure: 'ช่างโครงสร้าง',
+  plumbing: 'ช่างประปา',
+  roofing: 'ช่างหลังคา',
+  masonry: 'ช่างก่ออิฐฉาบปูน',
+  aluminum: 'ช่างประตูหน้าต่างอลูมิเนียม',
+  ceiling: 'ช่างฝ้าเพดาล',
+  electric: 'ช่างไฟฟ้า',
+  tiling: 'ช่างกระเบื้อง'
 };
 
 const ADMIN_BYPASS = {
@@ -661,7 +662,7 @@ function buildWorkerDataFromPayload(payload, { forUpdate = false } = {}) {
     base.role_code = 'worker';
   }
   if (!base.trade_type) {
-    base.trade_type = 'other';
+    base.trade_type = 'structure';
   }
 
   return base;
@@ -856,6 +857,8 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     let user = null;
+    let userSource = 'users';
+    let workerRoleKey = 'worker';
 
     if (phoneCandidates.length) {
       const placeholders = phoneCandidates.map(() => '?').join(', ');
@@ -878,12 +881,59 @@ app.post('/api/auth/login', async (req, res) => {
       );
     }
 
+    if (!user && identifier.includes('@')) {
+      const workerAccount = await queryOne(
+        `SELECT 
+           a.worker_id,
+           a.email,
+           a.password_hash,
+           a.status,
+           w.full_name,
+           w.phone,
+           w.role_code
+         FROM worker_accounts a
+         INNER JOIN workers w ON w.id = a.worker_id
+         WHERE LOWER(a.email) = LOWER(?)
+         LIMIT 1`,
+        [identifier]
+      );
+
+      if (workerAccount) {
+        user = {
+          id: workerAccount.worker_id,
+          full_name: workerAccount.full_name || '',
+          phone: workerAccount.phone || '',
+          email: workerAccount.email,
+          password_hash: workerAccount.password_hash,
+          status: workerAccount.status || 'active'
+        };
+        workerRoleKey = workerAccount.role_code || 'worker';
+        userSource = 'worker_accounts';
+      }
+    }
+
     if (!user) return res.status(401).json({ message: 'invalid_credentials' });
 
     const isMatch = await bcrypt.compare(parsed.password, user.password_hash ?? '');
     if (!isMatch) return res.status(401).json({ message: 'invalid_credentials' });
 
-    const roles = await fetchUserRoles(user.id);
+    if (userSource === 'worker_accounts' && (!user.status || user.status !== 'active')) {
+      return res.status(403).json({ message: 'account_inactive' });
+    }
+
+    const normalizeRoleKey = role => {
+      if (!role) return 'worker';
+      const value = String(role).toLowerCase();
+      if (value === 'admin') return 'admin';
+      if (value === 'project_manager' || value === 'pm') return 'project_manager';
+      if (value === 'foreman' || value === 'fm') return 'foreman';
+      return 'worker';
+    };
+
+    const roles =
+      userSource === 'worker_accounts'
+        ? [normalizeRoleKey(workerRoleKey)]
+        : (await fetchUserRoles(user.id)).map(normalizeRoleKey);
     const token = jwt.sign({ sub: user.id, roles }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
       issuer: 'skillgauge-api',
@@ -2611,11 +2661,39 @@ const questionListQuerySchema = z.object({
 });
 
 function parseOptionsJson(value) {
-  if (!value) return [];
+  if (value === null || value === undefined) {
+    return [];
+  }
+
   try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-  } catch {
+    let raw;
+    if (typeof value === 'string') {
+      raw = value;
+    } else if (Buffer.isBuffer(value)) {
+      raw = value.toString('utf8');
+    } else {
+      raw = JSON.stringify(value);
+    }
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter(option => option && typeof option === 'object')
+      .map(option => ({
+        id: option.id ?? null,
+        text: typeof option.text === 'string' ? option.text : '',
+        is_correct: Boolean(option.is_correct ?? option.isCorrect ?? option.correct)
+      }))
+      .filter(option => option.text.length > 0);
+  } catch (error) {
+    console.warn('[questions] Failed to parse question options', error);
     return [];
   }
 }

@@ -17,15 +17,14 @@ const AdminSignupCredentials = () => {
   const categoryLabel = useMemo(() => {
     if (!profileDraft?.category) return 'ไม่ระบุ';
     const map = {
-      othe0: 'ไม่มี (General Worker)',
-      othe1: 'ช่างไฟฟ้า',
-      othe2: 'ช่างประปา',
-      othe3: 'ช่างก่ออิฐฉาบปูน',
-      othe4: 'ช่างประตู-หน้าต่าง',
-      othe5: 'ช่างฝ้าเพดาน',
-      othe6: 'ช่างหลังคา',
-      othe7: 'ช่างกระเบื้อง',
-      othe: 'ช่างโครงสร้าง'
+      structure: 'ช่างโครงสร้าง',
+      plumbing: 'ช่างประปา',
+      roofing: 'ช่างหลังคา',
+      masonry: 'ช่างก่ออิฐฉาบปูน',
+      aluminum: 'ช่างประตูหน้าต่างอลูมิเนียม',
+      ceiling: 'ช่างฝ้าเพดาล',
+      electric: 'ช่างไฟฟ้า',
+      tiling: 'ช่างกระเบื้อง'
     };
     return map[profileDraft.category] || profileDraft.category;
   }, [profileDraft]);

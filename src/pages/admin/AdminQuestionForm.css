@@ -167,6 +167,11 @@
   line-height: 1.6;
 }
 
+.aqf-control--half {
+  width: 50%;
+  align-self: flex-start;
+}
+
 .aqf-hint {
   margin: 0;
   font-size: 0.78rem;
@@ -300,6 +305,9 @@
 }
 
 @media (max-width: 720px) {
+    .aqf-control--half {
+      width: 100%;
+    }
   .aqf-header {
     flex-direction: column;
     align-items: stretch;

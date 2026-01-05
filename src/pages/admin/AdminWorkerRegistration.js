@@ -7,13 +7,14 @@ import { apiRequest } from '../../utils/api';
 const provinceOptions = [];
 
 const tradeOptions = [
-  { value: 'electrician', label: 'ช่างไฟฟ้า' },
-  { value: 'plumber', label: 'ช่างประปา' },
-  { value: 'mason', label: 'ช่างปูน' },
-  { value: 'steel', label: 'ช่างเหล็ก' },
-  { value: 'carpenter', label: 'ช่างไม้' },
-  { value: 'hvac', label: 'ช่างเครื่องปรับอากาศ' },
-  { value: 'other', label: 'อื่นๆ' }
+  { value: 'structure', label: 'ช่างโครงสร้าง' },
+  { value: 'plumbing', label: 'ช่างประปา' },
+  { value: 'roofing', label: 'ช่างหลังคา' },
+  { value: 'masonry', label: 'ช่างก่ออิฐฉาบปูน' },
+  { value: 'aluminum', label: 'ช่างประตูหน้าต่างอลูมิเนียม' },
+  { value: 'ceiling', label: 'ช่างฝ้าเพดาล' },
+  { value: 'electric', label: 'ช่างไฟฟ้า' },
+  { value: 'tiling', label: 'ช่างกระเบื้อง' }
 ];
 
 const roleOptions = [

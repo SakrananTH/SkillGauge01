@@ -163,10 +163,14 @@ const AdminUsersTable = () => {
             </div>
             <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
               <option value="all">ทุกประเภท</option>
-              <option value="ช่างไฟฟ้า">ช่างไฟฟ้า</option>
+              <option value="ช่างโครงสร้าง">ช่างโครงสร้าง</option>
               <option value="ช่างประปา">ช่างประปา</option>
-              <option value="ช่างปูน">ช่างปูน</option>
-              <option value="ช่างเหล็ก">ช่างเหล็ก</option>
+              <option value="ช่างหลังคา">ช่างหลังคา</option>
+              <option value="ช่างก่ออิฐฉาบปูน">ช่างก่ออิฐฉาบปูน</option>
+              <option value="ช่างประตูหน้าต่างอลูมิเนียม">ช่างประตูหน้าต่างอลูมิเนียม</option>
+              <option value="ช่างฝ้าเพดาล">ช่างฝ้าเพดาล</option>
+              <option value="ช่างไฟฟ้า">ช่างไฟฟ้า</option>
+              <option value="ช่างกระเบื้อง">ช่างกระเบื้อง</option>
             </select>
           </div>
         </div>

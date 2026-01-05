@@ -17,6 +17,7 @@ import PMProjectManager from './pages/PMProjectManager';
 import WKProjectTasks from './pages/WKProject_Tasks';
 import WKSkillAssessmentTest from './pages/WKSkill_Assessment_Test';
 import WKSkillAssessmentQuiz from './pages/WKSkill_Assessment_Quiz';
+import WKWorkerProfile from './pages/WKWorkerProfile';
 import './App.css';
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
             <Route path="project-tasks" element={<WKProjectTasks />} />
             <Route path="skill-assessment" element={<WKSkillAssessmentTest />} />
             <Route path="skill-assessment/quiz" element={<WKSkillAssessmentQuiz />} />
+            <Route path="worker-profile" element={<WKWorkerProfile />} />
           </Route>
         </Routes>
       </div>

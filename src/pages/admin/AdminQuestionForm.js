@@ -4,13 +4,14 @@ import './AdminQuestionForm.css';
 import { apiRequest } from '../../utils/api';
 
 const CATEGORY_OPTIONS = [
-  { value: 'safety', label: '1.ช่างโครงสร้าง' },
-  { value: 'electric', label: '2.ช่างไฟฟ้า' },
-  { value: 'plumbing', label: '3.ช่างประปา' },
-  { value: 'steel', label: '4.ช่างเหล็ก' },
-  { value: 'carpenter', label: '5.ช่างไม้' },
-  { value: 'hvac', label: '6.ช่างเครื่องปรับอากาศ' },
-  { value: 'other', label: '7.อื่นๆ' }
+  { value: 'structure', label: '1.โครงสร้าง' },
+  { value: 'plumbing', label: '2.ประปา' },
+  { value: 'roofing', label: '3.หลังคา' },
+  { value: 'masonry', label: '4.ก่ออิฐฉาบปูน' },
+  { value: 'aluminum', label: '5.ประตูหน้าต่างอลูมิเนียม' },
+  { value: 'ceiling', label: '6.ฝ้าเพดาล' },
+  { value: 'electric', label: '7.ไฟฟ้า' },
+  { value: 'tiling', label: '8.กระเบื้อง' }
 ];
 
 const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((accumulator, option) => {
@@ -19,9 +20,9 @@ const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((accumulator, option) => {
 }, {});
 
 const DIFFICULTY_OPTIONS = [
-  { value: 'easy', label: 'ง่าย' },
-  { value: 'medium', label: 'ปานกลาง' },
-  { value: 'hard', label: 'ยาก' }
+  { value: 'easy', label: 'ระดับที่ 1' },
+  { value: 'medium', label: 'ระดับที่ 2' },
+  { value: 'hard', label: 'ระดับที่ 3' }
 ];
 
 const QUESTION_ERROR_MESSAGES = {
@@ -250,7 +251,7 @@ const AdminQuestionForm = () => {
                   <label htmlFor="question-category">หมวดหมู่ *</label>
                   <select
                     id="question-category"
-                    className="aqf-control"
+                    className="aqf-control aqf-control--half"
                     value={form.category}
                     onChange={(event) => setForm({ ...form, category: event.target.value })}
                   >
@@ -263,7 +264,7 @@ const AdminQuestionForm = () => {
                   <label htmlFor="question-difficulty">ระดับความยาก *</label>
                   <select
                     id="question-difficulty"
-                    className="aqf-control"
+                    className="aqf-control aqf-control--half"
                     value={form.difficulty}
                     onChange={(event) => setForm({ ...form, difficulty: event.target.value })}
                   >
