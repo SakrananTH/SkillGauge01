@@ -19,13 +19,13 @@ const CATEGORY_LABELS = CATEGORY_OPTIONS.reduce((accumulator, option) => {
   return accumulator;
 }, {});
 
-const SUBCATEGORY_OPTIONS = {
+const DEFAULT_SUBCATEGORY_OPTIONS = {
   structure: [
-    { value: 'rebar', label: '1. งานเหล็กเสริม (Rebar) ' },
-    { value: 'concrete', label: '2. งานคอนกรีต (Concrete) ' },
-    { value: 'formwork', label: '3. งานไม้แบบ (Formwork) ' },
-    { value: 'tools', label: '4. องค์ความรู้/คาม/เครื่องมือ/คุณภาพ ' },
-    { value: 'theory', label: '5. ทฤษฎีแบบ/พฤติ (Design Theory) ' }
+    { value: 'rebar', label: '1. งานเหล็กเสริม (Rebar)' },
+    { value: 'concrete', label: '2. งานคอนกรีต (Concrete)' },
+    { value: 'formwork', label: '3. งานไม้แบบ (Formwork)' },
+    { value: 'tools', label: '4. องค์อาคาร: คาน/เสา/ฐานราก' },
+    { value: 'theory', label: '5. ทฤษฎีแบบ/พฤติ (Design Theory)' }
   ],
   plumbing: [],
   roofing: [],
@@ -58,11 +58,11 @@ const MAX_OPTIONS = 6;
 
 const createEmptyOption = () => ({ text: '', isCorrect: false });
 
-const createInitialForm = (categoryValue = null) => {
+const createInitialForm = (categoryValue = null, subcategoryOptions = DEFAULT_SUBCATEGORY_OPTIONS) => {
   const resolvedCategory = categoryValue && CATEGORY_LABELS[categoryValue]
     ? categoryValue
     : CATEGORY_OPTIONS[0].value;
-  const subcategories = SUBCATEGORY_OPTIONS[resolvedCategory] || [];
+  const subcategories = subcategoryOptions[resolvedCategory] || [];
   return {
     text: '',
     category: resolvedCategory,
@@ -89,10 +89,21 @@ const AdminQuestionForm = () => {
   const editingQuestion = location.state?.question;
   const selectedCategory = location.state?.category || CATEGORY_OPTIONS[0].value;
 
+  const [subcategoryOptions, setSubcategoryOptions] = useState(DEFAULT_SUBCATEGORY_OPTIONS);
+
+  useEffect(() => {
+    const storedOptions = localStorage.getItem('admin_subcategory_options');
+    if (storedOptions) {
+      try {
+        setSubcategoryOptions(JSON.parse(storedOptions));
+      } catch (e) { /* ignore */ }
+    }
+  }, []);
+
   const [form, setForm] = useState(() => {
     if (editingQuestion) {
       const category = editingQuestion.category || selectedCategory;
-      const subcategories = SUBCATEGORY_OPTIONS[category] || [];
+      const subcategories = DEFAULT_SUBCATEGORY_OPTIONS[category] || [];
       return {
         text: editingQuestion.text || '',
         category: category,
@@ -106,8 +117,17 @@ const AdminQuestionForm = () => {
           : Array.from({ length: DEFAULT_OPTION_COUNT }, () => createEmptyOption())
       };
     }
-    return createInitialForm(selectedCategory);
+    return createInitialForm(selectedCategory, DEFAULT_SUBCATEGORY_OPTIONS);
   });
+
+  useEffect(() => {
+    if (!editingQuestion && !form.subcategory && subcategoryOptions[form.category]?.length > 0) {
+       setForm(prev => ({
+         ...prev,
+         subcategory: subcategoryOptions[prev.category][0].value
+       }));
+    }
+  }, [subcategoryOptions, editingQuestion, form.category, form.subcategory]);
 
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [questionError, setQuestionError] = useState('');
@@ -254,22 +274,6 @@ const AdminQuestionForm = () => {
         <section className="aqf-card">
           <form onSubmit={handleSubmit} className="aqf-form">
             <div className="aqf-section">
-              <h2 className="aqf-section-title">รายละเอียดคำถาม</h2>
-              <div className="aqf-field">
-                <label htmlFor="question-text">คำถาม *</label>
-                <textarea
-                  id="question-text"
-                  className="aqf-control aqf-control--textarea"
-                  value={form.text}
-                  onChange={(event) => setForm({ ...form, text: event.target.value })}
-                  placeholder="พิมพ์คำถามหรือสถานการณ์ที่ต้องการประเมิน"
-                  required
-                />
-                <p className="aqf-hint">คำถามที่ชัดเจนช่วยให้ผู้สอบเข้าใจโจทย์ได้ดีขึ้น</p>
-              </div>
-            </div>
-
-            <div className="aqf-section">
               <h2 className="aqf-section-title">การจัดหมวดหมู่</h2>
               <div className="aqf-grid">
                 <div className="aqf-field">
@@ -286,7 +290,7 @@ const AdminQuestionForm = () => {
                   </select>
                 </div>
                 
-                {SUBCATEGORY_OPTIONS[form.category] && SUBCATEGORY_OPTIONS[form.category].length > 0 && (
+                {subcategoryOptions[form.category] && subcategoryOptions[form.category].length > 0 && (
                   <div className="aqf-field">
                     <label htmlFor="question-subcategory">หมวดหมู่ *</label>
                     <select
@@ -296,7 +300,7 @@ const AdminQuestionForm = () => {
                       onChange={(event) => setForm({ ...form, subcategory: event.target.value })}
                     >
                       <option value="">เลือกหมวดหมู่</option>
-                      {SUBCATEGORY_OPTIONS[form.category].map(option => (
+                      {subcategoryOptions[form.category].map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </select>
@@ -317,6 +321,22 @@ const AdminQuestionForm = () => {
                   </select>
                   <p className="aqf-hint">เลือกความยากให้เหมาะสมกับทักษะที่ต้องการวัด</p>
                 </div>
+              </div>
+            </div>
+
+            <div className="aqf-section">
+              <h2 className="aqf-section-title">รายละเอียดคำถาม</h2>
+              <div className="aqf-field">
+                <label htmlFor="question-text">คำถาม *</label>
+                <textarea
+                  id="question-text"
+                  className="aqf-control aqf-control--textarea"
+                  value={form.text}
+                  onChange={(event) => setForm({ ...form, text: event.target.value })}
+                  placeholder="พิมพ์คำถามหรือสถานการณ์ที่ต้องการประเมิน"
+                  required
+                />
+                <p className="aqf-hint">คำถามที่ชัดเจนช่วยให้ผู้สอบเข้าใจโจทย์ได้ดีขึ้น</p>
               </div>
             </div>
 

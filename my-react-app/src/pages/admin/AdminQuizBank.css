@@ -846,6 +846,52 @@
   transform: none;
 }
 
+/* Pagination Styles */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d5dbe7;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2a44;
+  transition: all 0.2s ease;
+  font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: #5b7ce1;
+  color: #5b7ce1;
+  background: #f4f6ff;
+}
+
+.pagination-btn.active {
+  background: #5b7ce1;
+  color: #fff;
+  border-color: #5b7ce1;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f7f8fc;
+  color: #a0aec0;
+}
+
 @media (max-width: 768px) {
   .admin-quiz-bank {
     padding: 1.75rem 1.25rem;
