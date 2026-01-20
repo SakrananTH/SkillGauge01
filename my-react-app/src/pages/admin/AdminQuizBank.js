@@ -157,6 +157,8 @@ const AdminQuizBank = () => {
   const [roundsInitialized, setRoundsInitialized] = useState(false);
   const [roundsError, setRoundsError] = useState('');
   const [selectedRoundId, setSelectedRoundId] = useState(storedRoundId || ROUND_NEW_VALUE);
+  const selectedRoundIdRef = useRef(selectedRoundId);
+  useEffect(() => { selectedRoundIdRef.current = selectedRoundId; }, [selectedRoundId]);
   const [questionError, setQuestionError] = useState('');
   const [questionMessage, setQuestionMessage] = useState('');
   const [deletingQuestionId, setDeletingQuestionId] = useState(null);
@@ -266,11 +268,12 @@ const AdminQuizBank = () => {
 
       if (!keepSelection) {
         let nextSelection = ROUND_NEW_VALUE;
+        const currentId = selectedRoundIdRef.current;
         if (preferredId && items.some(item => item.id === preferredId)) {
           nextSelection = preferredId;
-        } else if (selectedRoundId && selectedRoundId !== ROUND_NEW_VALUE && items.some(item => item.id === selectedRoundId)) {
-          nextSelection = selectedRoundId;
-        } else if (!selectedRoundId && items.length) {
+        } else if (currentId && currentId !== ROUND_NEW_VALUE && items.some(item => item.id === currentId)) {
+          nextSelection = currentId;
+        } else if (!currentId && items.length) {
           nextSelection = items[0].id;
         }
 
@@ -289,7 +292,17 @@ const AdminQuizBank = () => {
       setRoundsLoading(false);
       setRoundsInitialized(true);
     }
-  }, [selectedRoundId]);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    setQuestionsLoading(true);
+    loadQuestions();
+    if (selectedRoundId && selectedRoundId !== ROUND_NEW_VALUE) {
+      loadRounds(selectedRoundId);
+    } else {
+      loadRounds(undefined, { keepSelection: true });
+    }
+  }, [loadQuestions, loadRounds, selectedRoundId]);
 
   useEffect(() => {
     loadQuestions();
@@ -350,11 +363,11 @@ const AdminQuizBank = () => {
 
 
 
-  const handleEdit = (question) => {
+  const handleEdit = useCallback((question) => {
     navigate('/admin/question/edit/' + question.id, { 
       state: { question, category: roundForm.category } 
     });
-  };
+  }, [navigate, roundForm.category]);
 
   const handleDuplicate = async (question) => {
     if (!window.confirm('ต้องการคัดลอกคำถามนี้ใช่หรือไม่?')) return;
@@ -498,7 +511,7 @@ const AdminQuizBank = () => {
     reader.readAsText(file);
   };
 
-  const handleDelete = async (questionId) => {
+  const handleDelete = useCallback(async (questionId) => {
     setQuestionError('');
     setQuestionMessage('');
     if (!window.confirm('ต้องการลบคำถามนี้?')) {
@@ -517,7 +530,7 @@ const AdminQuizBank = () => {
     } finally {
       setDeletingQuestionId(null);
     }
-  };
+  }, [loadQuestions]);
 
 
 
@@ -903,7 +916,7 @@ const AdminQuizBank = () => {
     }
 
     return filtered;
-  }, [questionsForSelectedCategory, tableCategoryFilter, tableSubcategoryFilter, tableDifficultyFilter]);
+  }, [questionsForSelectedCategory, tableCategoryFilter, tableSubcategoryFilter, tableDifficultyFilter, searchTerm]);
 
   const totalPages = Math.ceil(displayedQuestions.length / ITEMS_PER_PAGE);
   const paginatedQuestions = displayedQuestions.slice(
@@ -1184,6 +1197,9 @@ const AdminQuizBank = () => {
                 </p>
               </div>
               <div className="quiz-table-action-box">
+                <button type="button" className="pill secondary" onClick={handleRefresh} style={{ marginRight: '0.5rem' }} disabled={questionsLoading}>
+                  <i className='bx bx-refresh' style={{ marginRight: '4px' }}></i> รีเฟรช
+                </button>
                 <input
                   type="file"
                   id="import-csv-input"
@@ -1302,15 +1318,19 @@ const AdminQuizBank = () => {
                         correctText = correctOptions.map(option => option.text).join(', ');
                       }
                       
+                      const isExternal = question._source === 'question_Structural';
                       const difficultyLabel = DIFFICULTY_LABELS[question.difficulty] || '-';
                       const subcategoryLabel = question.subcategory && subcategoryOptions[roundForm.category]
                         ? subcategoryOptions[roundForm.category].find(opt => opt.value === question.subcategory)?.label || question.subcategory
                         : 'ไม่ระบุหมวดหมู่';
                       return (
-                        <tr key={question.id}>
+                        <tr key={question.id} style={isExternal ? { backgroundColor: '#f8fafc' } : {}}>
                           <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                           {subcategoryOptions[roundForm.category] && subcategoryOptions[roundForm.category].length > 0 && (
-                            <td>{subcategoryLabel}</td>
+                            <td>
+                              {subcategoryLabel}
+                              {isExternal && <span style={{ fontSize: '0.7em', backgroundColor: '#edf2f7', padding: '2px 4px', borderRadius: '4px', marginLeft: '4px', color: '#718096' }}>API</span>}
+                            </td>
                           )}
                           <td>{difficultyLabel}</td>
                           <td className="table-question">{question.text}</td>
@@ -1318,8 +1338,15 @@ const AdminQuizBank = () => {
                           <td className="table-answer">{correctText}</td>
                           <td>
                             <div className="table-actions">
-                              <button type="button" className="btn-icon" onClick={() => handleEdit(question)} title="แก้ไข" aria-label="แก้ไขคำถาม">
-                                <i className="bx bx-edit" style={{ color: '#3b82f6' }} />
+                              <button 
+                                type="button" 
+                                className="btn-icon" 
+                                onClick={() => handleEdit(question)} 
+                                title="แก้ไข" 
+                                aria-label="แก้ไขคำถาม"
+                                // เปิดให้แก้ไขได้แล้ว
+                              >
+                                <i className="bx bx-edit" style={{ color: isExternal ? '#cbd5e0' : '#3b82f6' }} />
                               </button>
                               <button type="button" className="btn-icon" onClick={() => handleDuplicate(question)} title="คัดลอก" aria-label="คัดลอกคำถาม">
                                 <i className="bx bx-copy" style={{ color: '#805ad5' }} />
@@ -1328,11 +1355,12 @@ const AdminQuizBank = () => {
                                 type="button"
                                 className={`btn-icon${deletingQuestionId === question.id ? ' is-busy' : ''}`}
                                 onClick={() => handleDelete(question.id)}
-                                title={deletingQuestionId === question.id ? 'กำลังลบ...' : 'ลบ'}
+                                title={isExternal ? "ไม่สามารถลบคำถามจากระบบภายนอกได้" : (deletingQuestionId === question.id ? 'กำลังลบ...' : 'ลบ')}
                                 aria-label={deletingQuestionId === question.id ? 'กำลังลบคำถาม' : 'ลบคำถาม'}
-                                disabled={deletingQuestionId === question.id}
+                                disabled={deletingQuestionId === question.id || isExternal}
+                                style={isExternal ? { opacity: 0.3, cursor: 'not-allowed' } : {}}
                               >
-                                <i className="bx bx-trash-alt" />
+                                <i className="bx bx-trash-alt" style={isExternal ? { color: '#cbd5e0' } : {}} />
                               </button>
                             </div>
                           </td>

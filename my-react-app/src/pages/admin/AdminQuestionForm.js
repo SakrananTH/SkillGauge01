@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import './AdminQuestionForm.css';
 import { apiRequest } from '../../utils/api';
 
@@ -86,8 +86,10 @@ const toFriendlyApiMessage = (error, fallback = 'เกิดข้อผิด�
 const AdminQuestionForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const editingQuestion = location.state?.question;
+  const { id } = useParams();
+  const [editingQuestion, setEditingQuestion] = useState(location.state?.question || null);
   const selectedCategory = location.state?.category || CATEGORY_OPTIONS[0].value;
+  const [isLoading, setIsLoading] = useState(false);
 
   const [subcategoryOptions, setSubcategoryOptions] = useState(DEFAULT_SUBCATEGORY_OPTIONS);
 
@@ -99,6 +101,64 @@ const AdminQuestionForm = () => {
       } catch (e) { /* ignore */ }
     }
   }, []);
+
+  useEffect(() => {
+    if (!editingQuestion && id) {
+      const fetchQuestion = async () => {
+        setIsLoading(true);
+        try {
+          let data;
+          // ตรวจสอบว่าเป็นคำถาม Structural หรือไม่ (ID ขึ้นต้นด้วย struct_)
+          if (id.startsWith('struct_')) {
+            const realId = id.replace('struct_', '');
+            const rawData = await apiRequest(`/api/question-structural/${realId}`); // สมมติ Endpoint นี้
+            
+            // แปลงข้อมูล Structural เป็นฟอร์แมตของฟอร์ม
+            data = {
+              id: id,
+              text: rawData.question_text,
+              category: 'structure',
+              subcategory: rawData.skill_type, // อาจต้องมีการ Map ค่าให้ตรงกับ Dropdown หากจำเป็น
+              difficulty: rawData.difficulty_level === 1 ? 'easy' : rawData.difficulty_level === 2 ? 'medium' : 'hard',
+              options: [
+                { text: rawData.choice_a || '', isCorrect: rawData.answer === 'A' },
+                { text: rawData.choice_b || '', isCorrect: rawData.answer === 'B' },
+                { text: rawData.choice_c || '', isCorrect: rawData.answer === 'C' },
+                { text: rawData.choice_d || '', isCorrect: rawData.answer === 'D' }
+              ],
+              _source: 'question_Structural',
+              _originalId: rawData.id
+            };
+          } else {
+            data = await apiRequest(`/api/admin/questions/${id}`);
+          }
+          setEditingQuestion(data);
+          
+          // Update form state after fetching
+          const category = data.category || selectedCategory;
+          const subcategories = DEFAULT_SUBCATEGORY_OPTIONS[category] || [];
+          setForm({
+            text: data.text || '',
+            category: category,
+            subcategory: data.subcategory || (subcategories.length > 0 ? subcategories[0].value : ''),
+            difficulty: data.difficulty || DIFFICULTY_OPTIONS[0].value,
+            options: Array.isArray(data.options) && data.options.length
+              ? data.options.map(opt => ({
+                  text: opt.text || '',
+                  isCorrect: Boolean(opt.isCorrect ?? opt.is_correct)
+                }))
+              : Array.from({ length: DEFAULT_OPTION_COUNT }, () => createEmptyOption())
+          });
+        } catch (error) {
+          console.error('Failed to fetch question details', error);
+          setQuestionError('ไม่สามารถโหลดข้อมูลคำถามได้ หรือคำถามอาจถูกลบไปแล้ว');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchQuestion();
+    }
+  }, [id, editingQuestion, selectedCategory]);
 
   const [form, setForm] = useState(() => {
     if (editingQuestion) {
@@ -121,13 +181,28 @@ const AdminQuestionForm = () => {
   });
 
   useEffect(() => {
-    if (!editingQuestion && !form.subcategory && subcategoryOptions[form.category]?.length > 0) {
+    if (editingQuestion && !form.text && !isLoading) {
+       const category = editingQuestion.category || selectedCategory;
+       const subcategories = DEFAULT_SUBCATEGORY_OPTIONS[category] || [];
+       setForm({
+        text: editingQuestion.text || '',
+        category: category,
+        subcategory: editingQuestion.subcategory || (subcategories.length > 0 ? subcategories[0].value : ''),
+        difficulty: editingQuestion.difficulty || DIFFICULTY_OPTIONS[0].value,
+        options: Array.isArray(editingQuestion.options) && editingQuestion.options.length
+          ? editingQuestion.options.map(opt => ({
+              text: opt.text || '',
+              isCorrect: Boolean(opt.isCorrect ?? opt.is_correct)
+            }))
+          : Array.from({ length: DEFAULT_OPTION_COUNT }, () => createEmptyOption())
+      });
+    } else if (!editingQuestion && !form.subcategory && subcategoryOptions[form.category]?.length > 0) {
        setForm(prev => ({
          ...prev,
          subcategory: subcategoryOptions[prev.category][0].value
        }));
     }
-  }, [subcategoryOptions, editingQuestion, form.category, form.subcategory]);
+  }, [subcategoryOptions, editingQuestion, form.category, form.subcategory, isLoading, form.text, selectedCategory]);
 
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [questionError, setQuestionError] = useState('');
@@ -138,7 +213,7 @@ const AdminQuestionForm = () => {
     navigate('/admin', { replace: true, state: { initialTab: 'quiz' } });
   }, [navigate]);
 
-  const handleAddOption = () => {
+  const handleAddOption = useCallback(() => {
     if (form.options.length >= MAX_OPTIONS) {
       setQuestionError(`เพิ่มตัวเลือกได้ไม่เกิน ${MAX_OPTIONS} ข้อ`);
       return;
@@ -148,9 +223,9 @@ const AdminQuestionForm = () => {
       ...prev,
       options: [...prev.options, createEmptyOption()]
     }));
-  };
+  }, [form.options.length]);
 
-  const handleRemoveOption = (index) => {
+  const handleRemoveOption = useCallback((index) => {
     if (form.options.length <= MIN_OPTIONS) {
       setQuestionError(`ต้องมีตัวเลือกอย่างน้อย ${MIN_OPTIONS} ข้อ`);
       return;
@@ -160,7 +235,7 @@ const AdminQuestionForm = () => {
       ...prev,
       options: prev.options.filter((_, optionIndex) => optionIndex !== index)
     }));
-  };
+  }, [form.options.length]);
 
   useEffect(() => () => {
     if (navigateTimeoutRef.current) {
@@ -168,16 +243,26 @@ const AdminQuestionForm = () => {
     }
   }, []);
 
-  const pageTitle = editingQuestion ? 'แก้ไขคำถาม' : 'เพิ่มคำถามใหม่';
-  const pageSubtitle = editingQuestion
+  const pageTitle = useMemo(() => editingQuestion ? 'แก้ไขคำถาม' : 'เพิ่มคำถามใหม่', [editingQuestion]);
+  
+  const pageSubtitle = useMemo(() => editingQuestion
     ? 'ปรับปรุงรายละเอียดคำถามเพื่อให้เหมาะกับการประเมิน'
-    : 'สร้างคำถามใหม่เพื่อเติมคลังข้อสอบของกิจกรรมนี้';
-  const categoryLabel = CATEGORY_LABELS[form.category]?.replace(/^\d+\.\s*/, '') || 'ไม่ระบุหมวดหมู่';
-  const difficultyLabel = DIFFICULTY_OPTIONS.find(option => option.value === form.difficulty)?.label || '-';
+    : 'สร้างคำถามใหม่เพื่อเติมคลังข้อสอบของกิจกรรมนี้', [editingQuestion]);
+
+  const categoryLabel = useMemo(() => 
+    CATEGORY_LABELS[form.category]?.replace(/^\d+\.\s*/, '') || 'ไม่ระบุหมวดหมู่', 
+    [form.category]
+  );
+
+  const difficultyLabel = useMemo(() => 
+    DIFFICULTY_OPTIONS.find(option => option.value === form.difficulty)?.label || '-', 
+    [form.difficulty]
+  );
+
   const optionLimitReached = form.options.length >= MAX_OPTIONS;
   const remainingOptionSlots = Math.max(0, MAX_OPTIONS - form.options.length);
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = useCallback(async (event) => {
     event.preventDefault();
     setQuestionError('');
     setQuestionMessage('');
@@ -218,7 +303,28 @@ const AdminQuestionForm = () => {
     setSavingQuestion(true);
     try {
       if (editingQuestion?.id) {
-        await apiRequest(`/api/admin/questions/${editingQuestion.id}`, { method: 'PUT', body: payload });
+        // ตรวจสอบว่าเป็นคำถาม Structural หรือไม่ เพื่อยิง API ให้ถูกตัว
+        if (editingQuestion._source === 'question_Structural' || String(editingQuestion.id).startsWith('struct_')) {
+          const realId = editingQuestion._originalId || String(editingQuestion.id).replace('struct_', '');
+          
+          // หาคำตอบที่ถูกเพื่อแปลงกลับเป็น A, B, C, D
+          const correctIndex = sanitizedOptions.findIndex(opt => opt.is_correct);
+          const answerChar = ['A', 'B', 'C', 'D'][correctIndex] || 'A';
+
+          const structPayload = {
+            question_text: form.text.trim(),
+            skill_type: form.subcategory, 
+            difficulty_level: form.difficulty === 'easy' ? 1 : form.difficulty === 'medium' ? 2 : 3,
+            choice_a: sanitizedOptions[0]?.text || '',
+            choice_b: sanitizedOptions[1]?.text || '',
+            choice_c: sanitizedOptions[2]?.text || '',
+            choice_d: sanitizedOptions[3]?.text || '',
+            answer: answerChar
+          };
+          await apiRequest(`/api/question-structural/${realId}`, { method: 'PUT', body: structPayload });
+        } else {
+          await apiRequest(`/api/admin/questions/${editingQuestion.id}`, { method: 'PUT', body: payload });
+        }
         setQuestionMessage('บันทึกการแก้ไขเรียบร้อย');
       } else {
         await apiRequest('/api/admin/questions', { method: 'POST', body: payload });
@@ -237,14 +343,18 @@ const AdminQuestionForm = () => {
     } finally {
       setSavingQuestion(false);
     }
-  };
+  }, [form, editingQuestion, goToQuizBank]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (navigateTimeoutRef.current) {
       clearTimeout(navigateTimeoutRef.current);
     }
     goToQuizBank();
-  };
+  }, [goToQuizBank]);
+
+  if (isLoading) {
+    return <div className="admin-question-form"><div className="aqf-content" style={{textAlign:'center', padding:'2rem'}}>กำลังโหลดข้อมูล...</div></div>;
+  }
 
   return (
     <div className="admin-question-form">
