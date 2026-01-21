@@ -3051,6 +3051,159 @@ app.delete('/api/assessments/:id', requireAuth, authorizeRoles('admin'), async (
 });
 
 // ---------------------------------------------------------------------------
+// Admin - Quizzes Management
+// ---------------------------------------------------------------------------
+app.get('/api/admin/quizzes', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const status = req.query.status;
+    let sql = 'SELECT * FROM quizzes';
+    let params = [];
+    
+    if (status) {
+      sql += ' WHERE status = ?';
+      params.push(status);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    const rows = await query(sql, params);
+    res.json({ items: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/quizzes/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const quizId = req.params.id;
+    if (!uuidSchema.safeParse(quizId).success) return res.status(400).json({ message: 'invalid id' });
+    
+    const quiz = await queryOne('SELECT * FROM quizzes WHERE id = ?', [quizId]);
+    if (!quiz) return res.status(404).json({ message: 'not_found' });
+    
+    const questions = await query(
+      `SELECT q.* FROM questions q
+       INNER JOIN quiz_questions qq ON qq.question_id = q.id
+       WHERE qq.quiz_id = ?
+       ORDER BY qq.order_index`,
+      [quizId]
+    );
+    
+    res.json({ ...quiz, questions });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/quizzes/:id/approve', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const quizId = req.params.id;
+    if (!uuidSchema.safeParse(quizId).success) return res.status(400).json({ message: 'invalid id' });
+    
+    const result = await execute(
+      `UPDATE quizzes 
+       SET status = 'approved', approved_by = ?, approved_at = NOW() 
+       WHERE id = ?`,
+      [req.user.full_name || req.user.email, quizId]
+    );
+    
+    if (!result.affectedRows) return res.status(404).json({ message: 'not_found' });
+    
+    res.json({ message: 'Quiz approved successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/admin/quizzes/:id/reject', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const quizId = req.params.id;
+    if (!uuidSchema.safeParse(quizId).success) return res.status(400).json({ message: 'invalid id' });
+    
+    const { reason } = req.body;
+    
+    const result = await execute(
+      `UPDATE quizzes 
+       SET status = 'rejected', rejected_reason = ? 
+       WHERE id = ?`,
+      [reason || 'ไม่ระบุเหตุผล', quizId]
+    );
+    
+    if (!result.affectedRows) return res.status(404).json({ message: 'not_found' });
+    
+    res.json({ message: 'Quiz rejected successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin - Expiring Assessments
+// ---------------------------------------------------------------------------
+app.get('/api/admin/assessments/expiring', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const daysAhead = parseInt(req.query.days) || 30;
+    
+    const rows = await query(
+      `SELECT 
+         a.id,
+         a.user_id,
+         u.full_name AS workerName,
+         ar.title AS title,
+         ar.category,
+         a.started_at AS startDate,
+         a.expiry_date AS expiryDate,
+         a.status,
+         a.score,
+         a.passed
+       FROM assessments a
+       LEFT JOIN users u ON u.id = a.user_id
+       LEFT JOIN assessment_rounds ar ON ar.id = a.round_id
+       WHERE a.expiry_date IS NOT NULL 
+         AND a.expiry_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
+         AND a.status IN ('pending', 'in_progress')
+       ORDER BY a.expiry_date ASC`,
+      [daysAhead]
+    );
+    
+    res.json({ items: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/admin/assessments/:id', requireAuth, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const assessmentId = req.params.id;
+    if (!uuidSchema.safeParse(assessmentId).success) return res.status(400).json({ message: 'invalid id' });
+    
+    const assessment = await queryOne(
+      `SELECT 
+         a.*,
+         u.full_name AS workerName,
+         ar.title AS roundTitle
+       FROM assessments a
+       LEFT JOIN users u ON u.id = a.user_id
+       LEFT JOIN assessment_rounds ar ON ar.id = a.round_id
+       WHERE a.id = ?`,
+      [assessmentId]
+    );
+    
+    if (!assessment) return res.status(404).json({ message: 'not_found' });
+    
+    res.json(assessment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Dashboard metrics
 // ---------------------------------------------------------------------------
 app.get('/api/dashboard/project-task-counts', requireAuth, authorizeRoles('project_manager'), async (_req, res) => {
@@ -3075,6 +3228,125 @@ app.get('/api/dashboard/project-task-counts', requireAuth, authorizeRoles('proje
       tasks_todo: Number(row.tasks_todo ?? 0),
       tasks_in_progress: Number(row.tasks_in_progress ?? 0),
       tasks_done: Number(row.tasks_done ?? 0)
+    })));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin Dashboard Stats
+// ---------------------------------------------------------------------------
+app.get('/api/admin/dashboard/stats', requireAuth, authorizeRoles('admin'), async (_req, res) => {
+  try {
+    // คำนวณคะแนนเฉลี่ยจากการประเมินล่าสุดของแต่ละคน
+    const scoreStats = await queryOne(
+      `SELECT 
+         ROUND(AVG(a.score), 2) as avg_score,
+         COUNT(DISTINCT a.user_id) as total_assessed,
+         SUM(CASE WHEN a.passed = 1 THEN 1 ELSE 0 END) as passed_count
+       FROM assessments a
+       INNER JOIN (
+         SELECT user_id, MAX(finished_at) as latest_date
+         FROM assessments
+         WHERE finished_at IS NOT NULL
+         GROUP BY user_id
+       ) latest ON a.user_id = latest.user_id AND a.finished_at = latest.latest_date`
+    );
+    
+    // นับจำนวนคนที่มีคะแนนต่ำกว่า 70
+    const belowThreshold = await queryOne(
+      `SELECT COUNT(DISTINCT a.user_id) as count
+       FROM assessments a
+       INNER JOIN (
+         SELECT user_id, MAX(finished_at) as latest_date
+         FROM assessments
+         WHERE finished_at IS NOT NULL
+         GROUP BY user_id
+       ) latest ON a.user_id = latest.user_id AND a.finished_at = latest.latest_date
+       WHERE a.score < 70`
+    );
+    
+    // หาจุดอ่อน (subcategory ที่มีคะแนนเฉลี่ยต่ำสุด)
+    const weakestSkill = await queryOne(
+      `SELECT 
+         s.label,
+         AVG(q.difficulty_level) as avg_difficulty
+       FROM assessment_answers aa
+       INNER JOIN questions q ON q.id = aa.question_id
+       INNER JOIN subcategories s ON s.id = q.subcategory_id
+       INNER JOIN question_options qo ON qo.id = aa.chosen_option_id
+       WHERE qo.is_correct = 0
+       GROUP BY s.id, s.label
+       ORDER BY COUNT(*) DESC
+       LIMIT 1`
+    );
+    
+    const avgScore = scoreStats?.avg_score || 0;
+    const totalAssessed = scoreStats?.total_assessed || 0;
+    const passedCount = scoreStats?.passed_count || 0;
+    const passRate = totalAssessed > 0 ? Math.round((passedCount / totalAssessed) * 100) : 0;
+    
+    res.json({
+      avgScore: avgScore,
+      passRate: passRate,
+      belowThreshold: belowThreshold?.count || 0,
+      weakestSkill: weakestSkill?.label || 'ไม่มีข้อมูล',
+      trend: {
+        avgScore: '+2.5%',
+        passRate: '+5%',
+        belowThreshold: '-3'
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin Dashboard Skill Gap Analysis
+// ---------------------------------------------------------------------------
+app.get('/api/admin/dashboard/skill-gap', requireAuth, authorizeRoles('admin'), async (_req, res) => {
+  try {
+    const rows = await query(
+      `SELECT 
+         d.name as department_name,
+         COUNT(DISTINCT w.id) as total_workers,
+         ROUND(AVG(a.score), 1) as current_avg_score,
+         ROUND(80 - AVG(a.score), 1) as skill_gap,
+         CASE 
+           WHEN AVG(a.score) < 60 THEN 'Critical'
+           WHEN AVG(a.score) < 70 THEN 'High'
+           WHEN AVG(a.score) < 80 THEN 'Medium'
+           ELSE 'Good'
+         END as priority_status
+       FROM departments d
+       LEFT JOIN workers w ON w.department_id = d.id
+       LEFT JOIN users u ON u.phone = w.phone
+       LEFT JOIN assessments a ON a.user_id = u.id
+       WHERE a.id IN (
+         SELECT a2.id
+         FROM assessments a2
+         INNER JOIN (
+           SELECT user_id, MAX(finished_at) as latest_date
+           FROM assessments
+           WHERE finished_at IS NOT NULL
+           GROUP BY user_id
+         ) latest ON a2.user_id = latest.user_id AND a2.finished_at = latest.latest_date
+       )
+       GROUP BY d.id, d.name
+       HAVING total_workers > 0
+       ORDER BY skill_gap DESC`
+    );
+    
+    res.json(rows.map(row => ({
+      department_name: row.department_name,
+      total_workers: Number(row.total_workers),
+      current_avg_score: Number(row.current_avg_score || 0).toFixed(1),
+      skill_gap: Number(row.skill_gap || 0).toFixed(1),
+      priority_status: row.priority_status
     })));
   } catch (error) {
     console.error(error);

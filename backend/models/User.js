@@ -41,7 +41,7 @@ function mapDbUserRow(row) {
     first_name: row.first_name,
     last_name: row.last_name,
     citizen_id: row.citizen_id,
-    technician_type: row.technician_type,
+    technician_type: row.trade_type, // Map จาก DB trade_type
     phone_number: row.phone_number,
     birth_date: row.birth_date,
     address_details: row.address_details,
@@ -50,7 +50,7 @@ function mapDbUserRow(row) {
     province: row.province,
     email: row.email,
     password: row.password,
-    role: row.role,
+    role: row.role_code, // Map จาก DB role_code
     source: 'dbuser'
   };
 }
@@ -129,9 +129,9 @@ async function findDbUserByEmail(email) {
   try {
     const sql = `
       SELECT 
-        id, prefix, first_name, last_name, citizen_id, technician_type,
+        id, prefix, first_name, last_name, citizen_id, trade_type,
         phone_number, birth_date, address_details, zip_code, sub_district, province,
-        email, password, role
+        email, password, role_code
       FROM dbuser 
       WHERE LOWER(email) = LOWER(?)
       LIMIT 1
@@ -164,12 +164,12 @@ exports.findByPhone = async (phone) => {
     const placeholders = candidates.map(() => '?').join(',');
     const sql = `
       SELECT 
-        id, prefix, first_name, last_name, citizen_id, technician_type,
+        id, prefix, first_name, last_name, citizen_id, trade_type,
         phone_number, birth_date, address_details, zip_code, sub_district, province,
-        email, password, role
+        email, password, role_code
       FROM dbuser 
       WHERE phone_number IN (${placeholders})
-        AND role = 'admin'
+        AND role_code = 'admin'
       LIMIT 1
     `;
     const [rows] = await pool.query(sql, candidates);
@@ -209,9 +209,9 @@ exports.create = async (userData) => {
   try {
     const sql = `
       INSERT INTO dbuser (
-        prefix, first_name, last_name, citizen_id, technician_type,
+        prefix, first_name, last_name, citizen_id, trade_type,
         phone_number, birth_date, address_details, zip_code, sub_district, province,
-        email, password, role
+        email, password, role_code
       ) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;

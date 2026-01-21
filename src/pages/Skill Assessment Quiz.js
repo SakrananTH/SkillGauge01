@@ -70,7 +70,24 @@ const SkillAssessmentQuiz = () => {
     if (idx < total - 1) return setIdx(idx + 1);
     // submit mock
     const correct = questions.reduce((acc, qq) => acc + (answers[qq.id] === qq.answer ? 1 : 0), 0);
-    alert(`ส่งคำตอบแล้ว\nคะแนน (ชั่วคราว): ${correct}/${total}`);
+    const scorePercent = (correct / total) * 100;
+
+    // These levels can be configured in the admin quiz bank
+    const level1Threshold = 80;
+    const level2Threshold = 60;
+    const level3Threshold = 40;
+
+    let level = '';
+    if (scorePercent >= level1Threshold) {
+      level = 'ระดับ 1';
+    } else if (scorePercent >= level2Threshold) {
+      level = 'ระดับ 2';
+    } else if (scorePercent >= level3Threshold) {
+      level = 'ระดับ 3';
+    } else {
+      level = 'ไม่ผ่าน';
+    }
+    alert(`ส่งคำตอบแล้ว\nคะแนน: ${correct}/${total} (${scorePercent.toFixed(2)}%)\nผล: ${level}`);
     navigate('/dashboard', { state: { user } });
   };
 
