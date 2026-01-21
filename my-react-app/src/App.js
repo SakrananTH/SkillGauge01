@@ -12,6 +12,7 @@ import AdminSignup from './pages/admin/Signup';
 import AdminSignupCredentials from './pages/admin/SignupCredentials';
 import AdminWorkerRegistration from './pages/admin/AdminWorkerRegistration';
 import AdminQuestionForm from './pages/admin/AdminQuestionForm';
+import PendingActions from './pages/admin/PendingActions';
 import WKDashboard from './pages/WKDashboard';
 import PMProjectManager from './pages/PMProjectManager';
 import WKProjectTasks from './pages/WKProject_Tasks';
@@ -38,6 +39,7 @@ function App() {
             <Route path="admin/worker-registration" element={<AdminRoute><AdminWorkerRegistration /></AdminRoute>} />
             <Route path="admin/question/add" element={<AdminRoute><AdminQuestionForm /></AdminRoute>} />
             <Route path="admin/question/edit/:id" element={<AdminRoute><AdminQuestionForm /></AdminRoute>} />
+            <Route path="admin/pending-actions" element={<AdminRoute><PendingActions /></AdminRoute>} />
             <Route path="dashboard" element={<WKDashboard />} />
             <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="pm" element={<PMProjectManager />} />

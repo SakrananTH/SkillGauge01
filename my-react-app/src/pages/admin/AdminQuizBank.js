@@ -172,7 +172,8 @@ const AdminQuizBank = () => {
     showScore: true,
     showAnswers: false,
     showBreakdown: true,
-    subcategoryQuotas: {}
+    subcategoryQuotas: {},
+    criteria: { level1: 60, level2: 70, level3: 80 }
   });
   const [roundSelectionTouched, setRoundSelectionTouched] = useState(Boolean(storedRoundId));
   const [roundSaving, setRoundSaving] = useState(false);
@@ -334,7 +335,8 @@ const AdminQuizBank = () => {
         showScore: matched.showScore ?? true,
         showAnswers: matched.showAnswers ?? false,
         showBreakdown: matched.showBreakdown ?? true,
-        subcategoryQuotas: matched.subcategoryQuotas || {}
+        subcategoryQuotas: matched.subcategoryQuotas || {},
+        criteria: matched.criteria || { level1: 60, level2: 70, level3: 80 }
       }));
     }
   }, [selectedRoundId, rounds]);
@@ -577,7 +579,8 @@ const AdminQuizBank = () => {
       showAnswers: false,
       showBreakdown: true,
       subcategoryQuotas: {},
-      frequencyMonths: null
+      frequencyMonths: null,
+      criteria: { level1: 60, level2: 70, level3: 80 }
     };
 
     setRoundSaving(true);
@@ -625,7 +628,8 @@ const AdminQuizBank = () => {
       showScore: true,
       showAnswers: false,
       showBreakdown: true,
-      subcategoryQuotas: {}
+      subcategoryQuotas: {},
+      criteria: { level1: 60, level2: 70, level3: 80 }
     }));
 
     let availableRounds = rounds;
@@ -719,6 +723,29 @@ const AdminQuizBank = () => {
       return;
     }
 
+    const cLevel1 = Number(roundForm.criteria?.level1 || 60);
+    const cLevel2 = Number(roundForm.criteria?.level2 || 70);
+    const cLevel3 = Number(roundForm.criteria?.level3 || 80);
+
+    if (cLevel1 < 0 || cLevel2 < 0 || cLevel3 < 0) {
+      setRoundError('เกณฑ์คะแนนต้องไม่เป็นค่าติดลบ');
+      return;
+    }
+
+    if (cLevel1 > 100 || cLevel2 > 100 || cLevel3 > 100) {
+      setRoundError('เกณฑ์คะแนนต้องไม่เกิน 100%');
+      return;
+    }
+
+    if (cLevel1 >= cLevel2) {
+      setRoundError('เกณฑ์ระดับ 1 ต้องน้อยกว่าระดับ 2');
+      return;
+    }
+    if (cLevel2 >= cLevel3) {
+      setRoundError('เกณฑ์ระดับ 2 ต้องน้อยกว่าระดับ 3');
+      return;
+    }
+
     let finalQuestionCount = Number(roundForm.questionCount);
     let calculatedTotal = 0;
     const quotas = roundForm.subcategoryQuotas || {};
@@ -748,12 +775,17 @@ const AdminQuizBank = () => {
       startAt: roundForm.startAt ? new Date(roundForm.startAt).toISOString() : null,
       endAt: roundForm.endAt ? new Date(roundForm.endAt).toISOString() : null,
       frequencyMonths: null,
-      passingScore: Number(roundForm.passingScore),
+      passingScore: Number(roundForm.criteria?.level1 || 60),
       durationMinutes: Number(roundForm.durationMinutes),
       showScore: roundForm.showScore,
       showAnswers: roundForm.showAnswers,
       showBreakdown: roundForm.showBreakdown,
-      subcategoryQuotas: roundForm.subcategoryQuotas
+      subcategoryQuotas: roundForm.subcategoryQuotas,
+      criteria: {
+        level1: Number(roundForm.criteria?.level1 || 60),
+        level2: Number(roundForm.criteria?.level2 || 70),
+        level3: Number(roundForm.criteria?.level3 || 80)
+      }
     };
 
     setRoundSaving(true);
@@ -1130,16 +1162,64 @@ const AdminQuizBank = () => {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="round-passing-score">เกณฑ์ผ่าน (%)</label>
-                  <input
-                    id="round-passing-score"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={roundForm.passingScore}
-                    onChange={(e) => setRoundForm({ ...roundForm, passingScore: Number(e.target.value) })}
-                  />
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <label style={{ marginBottom: 0 }}>เกณฑ์การวัดระดับ (%)</label>
+                    <button
+                      type="button"
+                      onClick={() => setRoundForm(prev => ({ ...prev, criteria: { level1: 60, level2: 70, level3: 80 } }))}
+                      style={{ background: 'none', border: 'none', color: '#3182ce', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      คืนค่าเริ่มต้น
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: '6px', border: '1px solid #eee' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px', display: 'block' }}>ระดับ 1 (พื้นฐาน)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="1"
+                        value={roundForm.criteria?.level1 ?? ''}
+                        onChange={(e) => setRoundForm({
+                          ...roundForm,
+                          criteria: { ...roundForm.criteria, level1: e.target.value === '' ? '' : Number(e.target.value) }
+                        })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px', display: 'block' }}>ระดับ 2 (กลาง)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="1"
+                        value={roundForm.criteria?.level2 ?? ''}
+                        onChange={(e) => setRoundForm({
+                          ...roundForm,
+                          criteria: { ...roundForm.criteria, level2: e.target.value === '' ? '' : Number(e.target.value) }
+                        })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px', display: 'block' }}>ระดับ 3 (สูง)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="1"
+                        value={roundForm.criteria?.level3 ?? ''}
+                        onChange={(e) => setRoundForm({
+                          ...roundForm,
+                          criteria: { ...roundForm.criteria, level3: e.target.value === '' ? '' : Number(e.target.value) }
+                        })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="form-group">
